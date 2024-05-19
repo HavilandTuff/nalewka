@@ -35,6 +35,7 @@ class Liquor(db.Model):
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
 
     author: so.Mapped[User] = so.relationship(back_populates='liquors')
+    batches: so.WriteOnlyMapped['Batch'] = so.relationship(back_populates='liquor')
 
     def __repr__(self):
         return f'<Liquor {self.name}'
@@ -59,3 +60,5 @@ class Batch(db.Model):
     date: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
     description: so.Mapped[str] = so.mapped_column(sa.Text())
     liquor_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Liquor.id), index=True)
+
+    liquor: so.Mapped[Liquor] = so.relationship(back_populates='batches')
