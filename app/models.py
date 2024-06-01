@@ -20,6 +20,10 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return '<User {}>'.format(self.username)
 
+    @property
+    def set_password(self):
+        raise AttributeError('set_password is not a readable attribute')
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -62,3 +66,10 @@ class Batch(db.Model):
     liquor_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Liquor.id), index=True)
 
     liquor: so.Mapped[Liquor] = so.relationship(back_populates='batches')
+
+
+class BatchFormula(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    batch_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Batch.id), index=True)
+    ingredient_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Ingredient.id), index=True)
+    quantity: so.Mapped[float] = so.mapped_column(sa.Float())   # grams of ingredient.
