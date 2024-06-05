@@ -2,8 +2,8 @@ from flask import render_template, flash, redirect, url_for
 from flask_login import current_user, login_user, logout_user
 import sqlalchemy as sa
 from app import app, db
-from app.forms import LoginForm
-from app.models import User
+from app.forms import LoginForm, BatchFormulaForm
+from app.models import User, Batch, Ingredient, BatchFormula, Liquor
 
 
 @app.route('/')
@@ -38,3 +38,27 @@ def logout():
     logout_user()
     flash("You've been logged out.")
     return redirect(url_for('index'))
+
+
+@app.route('/batch_formula', methods=['GET', 'POST'])
+def batch_formula():
+    form = BatchFormulaForm()
+    if form.validate_on_submit():
+        new_batch = Batch(
+            description=form.batch_description.data,
+            liquor_id=form.liquor.data
+        )
+        db.session.add(new_batch)
+        db.session.commit()
+
+        batch_formula = BatchFormula(
+            batch_id=new_batch.id,
+            ingredient_id=form.ingredient.data,
+            quantity=form.quantity.data
+        )
+        db.session.add(batch_formula)
+        db.session.commit()
+
+        flash('Batch formula added successfully!', 'success')
+        return redirect(url_for('batch_formula'))
+    return render_template('batch_formula.html', form=form)

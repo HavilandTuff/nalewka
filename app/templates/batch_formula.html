@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+    <h1>Add Batch Formula</h1>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.batch_description.label }}<br>
+            {{ form.batch_description }}
+        </p>
+        <p>
+            {{ form.liquor.label }}<br>
+            {{ form.liquor }}
+        </p>
+        <p>
+            {{ form.ingredient.label }}<br>
+            {{ form.ingredient }}
+        </p>
+        <p>
+            {{ form.quantity.label }}<br>
+            {{ form.quantity }}
+        </p>
+        <p>{{ form.submit }}</p>
+    </form>
+{% endblock %}
