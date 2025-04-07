@@ -22,10 +22,12 @@ class BatchFormulaForm(FlaskForm):
     batch_description = TextAreaField('Batch Description', validators=[DataRequired()])
     liquor = SelectField('Liquor', coerce=int, validators=[DataRequired()])
     ingredient = SelectField('Ingredient', coerce=int, validators=[DataRequired()])
-    quantity = FloatField('Quantity (grams)', validators=[DataRequired()])
+    quantity = FloatField('Quantity', validators=[DataRequired()])
+    unit = SelectField('Unit', validators=[DataRequired()])
     submit = SubmitField('Submit')
 
     def __init__(self, *args, **kwargs):
         super(BatchFormulaForm, self).__init__(*args, **kwargs)
         self.liquor.choices = [(liquor.id, liquor.name) for liquor in Liquor.query.all()]
         self.ingredient.choices = [(ingredient.id, ingredient.name) for ingredient in Ingredient.query.all()]
+        self.unit.choices = ['grams', 'mililiters']

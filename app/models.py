@@ -72,4 +72,5 @@ class BatchFormula(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     batch_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Batch.id), index=True)
     ingredient_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Ingredient.id), index=True)
-    quantity: so.Mapped[float] = so.mapped_column(sa.Float())   # grams of ingredient.
+    quantity: so.Mapped[float] = so.mapped_column(sa.Float())
+    unit: so.Mapped[str] = so.mapped_column(sa.String())
