@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField, FloatField, TextAreaField, FieldList, FormField
-from wtforms.validators import DataRequired, NumberRange, Length
+from wtforms.validators import DataRequired, NumberRange, Length, Email
 from app import db
 from app.models import Ingredient, Batch, Liquor
 
@@ -10,6 +10,12 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
     remember_me = BooleanField('Remember Me')
     submit = SubmitField('Sign In')
+
+
+class LiquorForm(FlaskForm):
+    name = StringField('Liquor Name', validators=[DataRequired(), Length(min=2, max=128)])
+    description = TextAreaField('Description', validators=[Length(max=1000)])
+    submit = SubmitField('Create Liquor')
 
 
 class IngredientEntryForm(FlaskForm):

@@ -1,23 +1,85 @@
 {% extends "base.html" %}
 {% block content %}
-    <h1>Liquor Management</h1>
-    
-    {% if current_user.is_authenticated %}
-        <h2>Your Liquors</h2>
-        {% if liquors %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="bi bi-cup-hot text-primary"></i> Liquor Management</h1>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('create_liquor') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Add New Liquor
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if current_user.is_authenticated %}
+    {% if liquors %}
+        <div class="row">
             {% for liquor in liquors %}
-                <div class="liquor-item">
-                    <h3>{{ liquor.name }}</h3>
-                    <p><strong>Description:</strong> {{ liquor.description or 'No description available' }}</p>
-                    <p><strong>Created:</strong> {{ liquor.created.strftime('%Y-%m-%d %H:%M') }}</p>
-                    <p><strong>Batches:</strong> {{ liquor.batches.count() }}</p>
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card liquor-card h-100 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title mb-0">{{ liquor.name }}</h5>
+                                <span class="badge bg-primary">{{ liquor.batches.count() }} batches</span>
+                            </div>
+                            <p class="card-text text-muted">
+                                {{ liquor.description or 'No description available' }}
+                            </p>
+                            <div class="small text-muted">
+                                <i class="bi bi-calendar"></i> Created: {{ liquor.created.strftime('%Y-%m-%d') }}
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="bi bi-clock"></i> {{ liquor.created.strftime('%H:%M') }}
+                                </small>
+                                <a href="{{ url_for('batch_formula') }}?liquor={{ liquor.id }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-plus"></i> Add Batch
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <hr>
             {% endfor %}
-        {% else %}
-            <p>You haven't created any liquors yet.</p>
-        {% endif %}
+        </div>
     {% else %}
-        <p>Please <a href="{{ url_for('login') }}">log in</a> to manage your liquors.</p>
+        <div class="row justify-content-center">
+            <div class="col-md-8 text-center">
+                <div class="card">
+                    <div class="card-body py-5">
+                        <i class="bi bi-cup-hot display-1 text-muted mb-3"></i>
+                        <h3>No Liquors Yet</h3>
+                        <p class="text-muted mb-4">You haven't created any liquors yet. Start by adding your first liquor!</p>
+                        <a href="{{ url_for('create_liquor') }}" class="btn btn-primary btn-lg">
+                            <i class="bi bi-plus-circle"></i> Create Your First Liquor
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     {% endif %}
+{% else %}
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="card">
+                <div class="card-body py-5">
+                    <i class="bi bi-person-circle display-1 text-muted mb-3"></i>
+                    <h3>Welcome to Nalewka</h3>
+                    <p class="text-muted mb-4">Please log in to manage your liquor collection and create batches.</p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </a>
+                        <a href="{{ url_for('register') }}" class="btn btn-outline-primary btn-lg">
+                            <i class="bi bi-person-plus"></i> Register
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
 {% endblock %}

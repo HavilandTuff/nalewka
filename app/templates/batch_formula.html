@@ -1,68 +1,100 @@
 {% extends "base.html" %}
 {% block content %}
-    <h1>Create New Batch</h1>
-    <form method="POST">
-        {{ form.hidden_tag() }}
-        
-        <div class="form-group">
-            {{ form.batch_description.label }}
-            {{ form.batch_description(rows=4) }}
-            {% if form.batch_description.errors %}
-                {% for error in form.batch_description.errors %}
-                    <span style="color: red;">{{ error }}</span>
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="form-container">
+            <div class="text-center mb-4">
+                <h1><i class="bi bi-clipboard-plus text-primary"></i> Create New Batch</h1>
+                <p class="text-muted">Add a new batch with ingredients and measurements</p>
+            </div>
+            
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.batch_description.label(class="form-label") }}
+                            {{ form.batch_description(class="form-control" + (" is-invalid" if form.batch_description.errors else ""), rows=4) }}
+                            {% if form.batch_description.errors %}
+                                {% for error in form.batch_description.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.liquor.label(class="form-label") }}
+                            {{ form.liquor(class="form-select" + (" is-invalid" if form.liquor.errors else "")) }}
+                            {% if form.liquor.errors %}
+                                {% for error in form.liquor.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <h3 class="mb-3"><i class="bi bi-list-ul"></i> Ingredients</h3>
+                {% for ingredient_form in form.ingredients %}
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Ingredient {{ loop.index }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        {{ ingredient_form.ingredient.label(class="form-label") }}
+                                        {{ ingredient_form.ingredient(class="form-select" + (" is-invalid" if ingredient_form.ingredient.errors else "")) }}
+                                        {% if ingredient_form.ingredient.errors %}
+                                            {% for error in ingredient_form.ingredient.errors %}
+                                                <div class="invalid-feedback">{{ error }}</div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        {{ ingredient_form.quantity.label(class="form-label") }}
+                                        {{ ingredient_form.quantity(class="form-control" + (" is-invalid" if ingredient_form.quantity.errors else "")) }}
+                                        {% if ingredient_form.quantity.errors %}
+                                            {% for error in ingredient_form.quantity.errors %}
+                                                <div class="invalid-feedback">{{ error }}</div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        {{ ingredient_form.unit.label(class="form-label") }}
+                                        {{ ingredient_form.unit(class="form-select" + (" is-invalid" if ingredient_form.unit.errors else "")) }}
+                                        {% if ingredient_form.unit.errors %}
+                                            {% for error in ingredient_form.unit.errors %}
+                                                <div class="invalid-feedback">{{ error }}</div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 {% endfor %}
-            {% endif %}
-        </div>
-        
-        <div class="form-group">
-            {{ form.liquor.label }}
-            {{ form.liquor }}
-            {% if form.liquor.errors %}
-                {% for error in form.liquor.errors %}
-                    <span style="color: red;">{{ error }}</span>
-                {% endfor %}
-            {% endif %}
-        </div>
-        
-        <h3>Ingredients</h3>
-        {% for ingredient_form in form.ingredients %}
-            <fieldset>
-                <legend>Ingredient {{ loop.index }}</legend>
                 
-                <div class="form-group">
-                    {{ ingredient_form.ingredient.label }}
-                    {{ ingredient_form.ingredient }}
-                    {% if ingredient_form.ingredient.errors %}
-                        {% for error in ingredient_form.ingredient.errors %}
-                            <span style="color: red;">{{ error }}</span>
-                        {% endfor %}
-                    {% endif %}
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-md-2">
+                        <i class="bi bi-arrow-left"></i> Cancel
+                    </a>
+                    {{ form.submit(class="btn btn-primary btn-lg") }}
                 </div>
-                
-                <div class="form-group">
-                    {{ ingredient_form.quantity.label }}
-                    {{ ingredient_form.quantity }}
-                    {% if ingredient_form.quantity.errors %}
-                        {% for error in ingredient_form.quantity.errors %}
-                            <span style="color: red;">{{ error }}</span>
-                        {% endfor %}
-                    {% endif %}
-                </div>
-                
-                <div class="form-group">
-                    {{ ingredient_form.unit.label }}
-                    {{ ingredient_form.unit }}
-                    {% if ingredient_form.unit.errors %}
-                        {% for error in ingredient_form.unit.errors %}
-                            <span style="color: red;">{{ error }}</span>
-                        {% endfor %}
-                    {% endif %}
-                </div>
-            </fieldset>
-        {% endfor %}
-        
-        <div class="form-group">
-            {{ form.submit(class="btn") }}
+            </form>
         </div>
-    </form>
+    </div>
+</div>
 {% endblock %}

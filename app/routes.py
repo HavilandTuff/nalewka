@@ -2,7 +2,7 @@ from flask import render_template, flash, redirect, url_for, request
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app import app, db
-from app.forms import LoginForm, BatchFormulaForm
+from app.forms import LoginForm, BatchFormulaForm, LiquorForm
 from app.models import User, Batch, Ingredient, BatchFormula, Liquor
 
 
@@ -103,6 +103,29 @@ def logout():
     logout_user()
     flash("You've been logged out.", 'info')
     return redirect(url_for('index'))
+
+
+@app.route('/create_liquor', methods=['GET', 'POST'])
+@login_required
+def create_liquor():
+    form = LiquorForm()
+    if form.validate_on_submit():
+        try:
+            liquor = Liquor(
+                name=form.name.data,
+                description=form.description.data,
+                user_id=current_user.id
+            )
+            db.session.add(liquor)
+            db.session.commit()
+            flash(f'Liquor "{liquor.name}" created successfully!', 'success')
+            return redirect(url_for('index'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating liquor: {str(e)}', 'error')
+            return render_template('create_liquor.html', form=form)
+    
+    return render_template('create_liquor.html', form=form)
 
 
 @app.route('/batch_formula', methods=['GET', 'POST'])
