@@ -3,7 +3,7 @@
 <div class="row">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1><i class="bi bi-cup-hot text-primary"></i> Liquor Management</h1>
+            <h1><i class="bi bi-flask-florence text-primary"></i> Liquor Management</h1>
             {% if current_user.is_authenticated %}
                 <a href="{{ url_for('create_liquor') }}" class="btn btn-primary">
                     <i class="bi bi-plus-circle"></i> Add New Liquor
@@ -22,7 +22,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <h5 class="card-title mb-0">{{ liquor.name }}</h5>
-                                <span class="badge bg-primary">{{ liquor.batches.count() }} batches</span>
+                                <span class="badge bg-primary">{{ liquor.batches|length }} batches</span>
                             </div>
                             <p class="card-text text-muted">
                                 {{ liquor.description or 'No description available' }}

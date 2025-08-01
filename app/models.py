@@ -15,7 +15,7 @@ class User(UserMixin, db.Model):
                                              unique=True)
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
 
-    liquors: so.WriteOnlyMapped['Liquor'] = so.relationship(back_populates='author')
+    liquors: so.Mapped[list['Liquor']] = so.relationship(back_populates='author')
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -35,7 +35,7 @@ class Liquor(db.Model):
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
 
     author: so.Mapped[User] = so.relationship(back_populates='liquors')
-    batches: so.WriteOnlyMapped['Batch'] = so.relationship(back_populates='liquor', cascade='all, delete-orphan')
+    batches: so.Mapped[list['Batch']] = so.relationship(back_populates='liquor', cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<Liquor {self.name}>'
@@ -52,7 +52,7 @@ class Ingredient(db.Model):
     description: so.Mapped[str] = so.mapped_column(sa.Text())
 
     # Relationship to BatchFormula
-    batch_formulas: so.WriteOnlyMapped['BatchFormula'] = so.relationship(back_populates='ingredient')
+    batch_formulas: so.Mapped[list['BatchFormula']] = so.relationship(back_populates='ingredient')
 
     def __repr__(self):
         return f'<Ingredient {self.name}>'
@@ -65,7 +65,7 @@ class Batch(db.Model):
     liquor_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Liquor.id), index=True)
 
     liquor: so.Mapped[Liquor] = so.relationship(back_populates='batches')
-    formulas: so.WriteOnlyMapped['BatchFormula'] = so.relationship(back_populates='batch', cascade='all, delete-orphan')
+    formulas: so.Mapped[list['BatchFormula']] = so.relationship(back_populates='batch', cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<Batch {self.id} - {self.description[:50]}...>'

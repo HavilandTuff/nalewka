@@ -10,7 +10,9 @@ A Flask-based web application for managing homemade liquor recipes and batches.
 - **Ingredient Database**: Maintain a database of ingredients with descriptions
 - **Recipe Management**: Store and track liquor recipes with precise measurements
 
-## Installation
+## Local Development
+
+### Installation
 
 1. **Clone the repository**:
    ```bash
@@ -46,9 +48,7 @@ A Flask-based web application for managing homemade liquor recipes and batches.
    python manage.py sample
    ```
 
-## Usage
-
-### Starting the Application
+### Running Locally
 
 ```bash
 flask run
@@ -61,18 +61,66 @@ The application will be available at `http://localhost:5000`
 - **Username**: admin
 - **Password**: password123
 
-### Management Commands
+## Deployment on Render
 
-```bash
-# Initialize database
-python manage.py init
+### Prerequisites
 
-# Reset database (drops all tables)
-python manage.py reset
+- A Render account
+- Your code pushed to a Git repository (GitHub, GitLab, etc.)
 
-# Create sample data
-python manage.py sample
-```
+### Deployment Steps
+
+1. **Connect your repository to Render**:
+   - Go to [Render Dashboard](https://dashboard.render.com)
+   - Click "New +" and select "Web Service"
+   - Connect your Git repository
+
+2. **Configure the service**:
+   - **Name**: `nalewka-app` (or your preferred name)
+   - **Environment**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn --bind 0.0.0.0:$PORT nalewka:app`
+
+3. **Add environment variables**:
+   - `FLASK_ENV`: `production`
+   - `SECRET_KEY`: Generate a secure random string
+   - `DATABASE_URL`: Will be automatically set when you add a database
+
+4. **Add a PostgreSQL database**:
+   - In your Render dashboard, click "New +" and select "PostgreSQL"
+   - Name it `nalewka-db`
+   - Copy the connection string to your environment variables
+
+5. **Deploy**:
+   - Click "Create Web Service"
+   - Render will automatically build and deploy your application
+
+### Using render.yaml (Alternative)
+
+If you prefer to use the `render.yaml` file:
+
+1. Push your code with the `render.yaml` file to your repository
+2. In Render dashboard, click "New +" and select "Blueprint"
+3. Connect your repository
+4. Render will automatically create the web service and database
+
+### Post-Deployment Setup
+
+After deployment, you need to initialize the database:
+
+1. **Access your application** and note the URL
+2. **Run database initialization** (you can do this via Render's shell or by adding a build script):
+   ```bash
+   python deploy.py --sample
+   ```
+
+### Environment Variables for Production
+
+Make sure these are set in your Render service:
+
+- `FLASK_ENV`: `production`
+- `SECRET_KEY`: A secure random string
+- `DATABASE_URL`: PostgreSQL connection string (auto-set by Render)
 
 ## Database Schema
 
@@ -114,6 +162,9 @@ nalewka/
 ├── config.py               # Configuration settings
 ├── nalewka.py              # Application entry point
 ├── manage.py               # Management script
+├── deploy.py               # Deployment script
+├── build.sh                # Build script for Render
+├── render.yaml             # Render configuration
 ├── requirements.txt        # Python dependencies
 └── README.md              # This file
 ```
