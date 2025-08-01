@@ -18,11 +18,7 @@ class User(UserMixin, db.Model):
     liquors: so.WriteOnlyMapped['Liquor'] = so.relationship(back_populates='author')
 
     def __repr__(self):
-        return '<User {}>'.format(self.username)
-
-    @property
-    def set_password(self):
-        raise AttributeError('set_password is not a readable attribute')
+        return f'<User {self.username}>'
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -39,10 +35,10 @@ class Liquor(db.Model):
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
 
     author: so.Mapped[User] = so.relationship(back_populates='liquors')
-    batches: so.WriteOnlyMapped['Batch'] = so.relationship(back_populates='liquor')
+    batches: so.WriteOnlyMapped['Batch'] = so.relationship(back_populates='liquor', cascade='all, delete-orphan')
 
     def __repr__(self):
-        return f'<Liquor {self.name}'
+        return f'<Liquor {self.name}>'
 
 
 @login.user_loader
@@ -52,11 +48,14 @@ def load_user(id):
 
 class Ingredient(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    name: so.Mapped[str] = so.mapped_column(sa.String(), index=True, unique=True)
+    name: so.Mapped[str] = so.mapped_column(sa.String(128), index=True, unique=True)
     description: so.Mapped[str] = so.mapped_column(sa.Text())
 
+    # Relationship to BatchFormula
+    batch_formulas: so.WriteOnlyMapped['BatchFormula'] = so.relationship(back_populates='ingredient')
+
     def __repr__(self):
-        return f'{self.name} \n{self.description}'
+        return f'<Ingredient {self.name}>'
 
 
 class Batch(db.Model):
@@ -66,6 +65,10 @@ class Batch(db.Model):
     liquor_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Liquor.id), index=True)
 
     liquor: so.Mapped[Liquor] = so.relationship(back_populates='batches')
+    formulas: so.WriteOnlyMapped['BatchFormula'] = so.relationship(back_populates='batch', cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<Batch {self.id} - {self.description[:50]}...>'
 
 
 class BatchFormula(db.Model):
@@ -73,4 +76,10 @@ class BatchFormula(db.Model):
     batch_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Batch.id), index=True)
     ingredient_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Ingredient.id), index=True)
     quantity: so.Mapped[float] = so.mapped_column(sa.Float())
-    unit: so.Mapped[str] = so.mapped_column(sa.String())
+    unit: so.Mapped[str] = so.mapped_column(sa.String(20))
+
+    batch: so.Mapped[Batch] = so.relationship(back_populates='formulas')
+    ingredient: so.Mapped[Ingredient] = so.relationship(back_populates='batch_formulas')
+
+    def __repr__(self):
+        return f'<BatchFormula {self.ingredient.name}: {self.quantity} {self.unit}>'

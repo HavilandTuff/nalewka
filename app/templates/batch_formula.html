@@ -1,34 +1,68 @@
 {% extends "base.html" %}
 {% block content %}
-    <h1>Add Batch Formula</h1>
+    <h1>Create New Batch</h1>
     <form method="POST">
         {{ form.hidden_tag() }}
-        <p>
-            {{ form.batch_description.label }}<br>
-            {{ form.batch_description }}
-        </p>
-        <p>
-            {{ form.liquor.label }}<br>
+        
+        <div class="form-group">
+            {{ form.batch_description.label }}
+            {{ form.batch_description(rows=4) }}
+            {% if form.batch_description.errors %}
+                {% for error in form.batch_description.errors %}
+                    <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            {{ form.liquor.label }}
             {{ form.liquor }}
-        </p>
+            {% if form.liquor.errors %}
+                {% for error in form.liquor.errors %}
+                    <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+            {% endif %}
+        </div>
+        
         <h3>Ingredients</h3>
         {% for ingredient_form in form.ingredients %}
             <fieldset>
                 <legend>Ingredient {{ loop.index }}</legend>
-                <p>
-                    {{ ingredient_form.ingredient.label }}<br>
+                
+                <div class="form-group">
+                    {{ ingredient_form.ingredient.label }}
                     {{ ingredient_form.ingredient }}
-                </p>
-                <p>
-                    {{ ingredient_form.quantity.label }}<br>
+                    {% if ingredient_form.ingredient.errors %}
+                        {% for error in ingredient_form.ingredient.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    {{ ingredient_form.quantity.label }}
                     {{ ingredient_form.quantity }}
-                </p>
-                <p>
-                    {{ ingredient_form.unit.label }}<br>
+                    {% if ingredient_form.quantity.errors %}
+                        {% for error in ingredient_form.quantity.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    {{ ingredient_form.unit.label }}
                     {{ ingredient_form.unit }}
-                </p>
+                    {% if ingredient_form.unit.errors %}
+                        {% for error in ingredient_form.unit.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
             </fieldset>
         {% endfor %}
-        <p>{{ form.submit }}</p>
+        
+        <div class="form-group">
+            {{ form.submit(class="btn") }}
+        </div>
     </form>
 {% endblock %}

@@ -1,16 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
-    <H1>Liquor list</H1>
-    {% for liquor in liquors %}
-        <div>
-            <p>
-            <H2>{{ liquor.name }}</H2>
-            </p>
-            <br>
-            <p>
-                {{ liquor.description }}
-            </p>
-            <br><br>
-        </div>
-    {% endfor %}
+    <h1>Liquor Management</h1>
+    
+    {% if current_user.is_authenticated %}
+        <h2>Your Liquors</h2>
+        {% if liquors %}
+            {% for liquor in liquors %}
+                <div class="liquor-item">
+                    <h3>{{ liquor.name }}</h3>
+                    <p><strong>Description:</strong> {{ liquor.description or 'No description available' }}</p>
+                    <p><strong>Created:</strong> {{ liquor.created.strftime('%Y-%m-%d %H:%M') }}</p>
+                    <p><strong>Batches:</strong> {{ liquor.batches.count() }}</p>
+                </div>
+                <hr>
+            {% endfor %}
+        {% else %}
+            <p>You haven't created any liquors yet.</p>
+        {% endif %}
+    {% else %}
+        <p>Please <a href="{{ url_for('login') }}">log in</a> to manage your liquors.</p>
+    {% endif %}
 {% endblock %}
