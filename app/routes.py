@@ -51,12 +51,17 @@ def batch_formula():
         db.session.add(new_batch)
         db.session.commit()
 
-        batch_formula = BatchFormula(
-            batch_id=new_batch.id,
-            ingredient_id=form.ingredient.data,
-            quantity=form.quantity.data
-        )
-        db.session.add(batch_formula)
+        # Loop through each ingredient entry in the form
+        for ingredient_form in form.ingredients:
+            # Only add if ingredient is selected and quantity is provided
+            if ingredient_form.ingredient.data and ingredient_form.quantity.data:
+                batch_formula = BatchFormula(
+                    batch_id=new_batch.id,
+                    ingredient_id=ingredient_form.ingredient.data,
+                    quantity=ingredient_form.quantity.data,
+                    unit=ingredient_form.unit.data
+                )
+                db.session.add(batch_formula)
         db.session.commit()
 
         flash('Batch formula added successfully!', 'success')

@@ -11,15 +11,24 @@
             {{ form.liquor.label }}<br>
             {{ form.liquor }}
         </p>
-        <p>
-            {{ form.ingredient.label }}<br>
-            {{ form.ingredient }}
-        </p>
-        <p>
-            {{ form.quantity.label }}<br>
-            {{ form.quantity }}
-            {{ form.unit }}
-        </p>
+        <h3>Ingredients</h3>
+        {% for ingredient_form in form.ingredients %}
+            <fieldset>
+                <legend>Ingredient {{ loop.index }}</legend>
+                <p>
+                    {{ ingredient_form.ingredient.label }}<br>
+                    {{ ingredient_form.ingredient }}
+                </p>
+                <p>
+                    {{ ingredient_form.quantity.label }}<br>
+                    {{ ingredient_form.quantity }}
+                </p>
+                <p>
+                    {{ ingredient_form.unit.label }}<br>
+                    {{ ingredient_form.unit }}
+                </p>
+            </fieldset>
+        {% endfor %}
         <p>{{ form.submit }}</p>
     </form>
 {% endblock %}
