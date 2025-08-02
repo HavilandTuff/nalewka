@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block content %}
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('index') }}"><i class="bi bi-house"></i> Home</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ liquor.name }}</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1><i class="bi bi-flask-florence text-primary"></i> {{ liquor.name }}</h1>
+                <p class="text-muted mb-0">{{ liquor.description or 'No description available' }}</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('batch_formula') }}?liquor={{ liquor.id }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Add New Batch
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Liquors
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="bi bi-clipboard-data"></i> Batches ({{ batches|length }})</h3>
+            </div>
+            <div class="card-body">
+                {% if batches %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Ingredients</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for batch in batches %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex flex-column">
+                                                <strong>{{ batch.date.strftime('%Y-%m-%d') }}</strong>
+                                                <small class="text-muted">{{ batch.date.strftime('%H:%M') }}</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="fw-medium">{{ batch.description }}</div>
+                                        </td>
+                                        <td>
+                                            {% if batch.formulas %}
+                                                <div class="d-flex flex-wrap gap-1">
+                                                    {% for formula in batch.formulas %}
+                                                        <span class="badge bg-light text-dark border">
+                                                            {{ formula.ingredient.name }}: {{ formula.quantity }} {{ formula.unit }}
+                                                        </span>
+                                                    {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">No ingredients</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button type="button" class="btn btn-outline-primary" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#batchModal{{ batch.id }}">
+                                                    <i class="bi bi-eye"></i> View
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-clipboard-x display-1 text-muted mb-3"></i>
+                        <h4>No Batches Yet</h4>
+                        <p class="text-muted mb-4">You haven't created any batches for this liquor yet.</p>
+                        <a href="{{ url_for('batch_formula') }}?liquor={{ liquor.id }}" class="btn btn-primary btn-lg">
+                            <i class="bi bi-plus-circle"></i> Create First Batch
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Batch Detail Modals -->
+{% for batch in batches %}
+    <div class="modal fade" id="batchModal{{ batch.id }}" tabindex="-1" aria-labelledby="batchModalLabel{{ batch.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="batchModalLabel{{ batch.id }}">
+                        <i class="bi bi-clipboard-data"></i> Batch Details
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Batch Information</h6>
+                            <p><strong>Date:</strong> {{ batch.date.strftime('%Y-%m-%d %H:%M') }}</p>
+                            <p><strong>Description:</strong> {{ batch.description }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Ingredients</h6>
+                            {% if batch.formulas %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Ingredient</th>
+                                                <th>Quantity</th>
+                                                <th>Unit</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for formula in batch.formulas %}
+                                                <tr>
+                                                    <td>{{ formula.ingredient.name }}</td>
+                                                    <td>{{ formula.quantity }}</td>
+                                                    <td>{{ formula.unit }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p class="text-muted">No ingredients recorded</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+{% endblock %} 

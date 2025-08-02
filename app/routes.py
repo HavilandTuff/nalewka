@@ -136,6 +136,14 @@ def batch_formula():
     # Filter liquors to only show user's liquors
     form.liquor.choices = [(liquor.id, liquor.name) for liquor in Liquor.query.filter_by(user_id=current_user.id).all()]
     
+    # Handle pre-selected liquor from URL parameter
+    liquor_id = request.args.get('liquor', type=int)
+    if liquor_id and request.method == 'GET':
+        # Verify the liquor belongs to the current user
+        liquor = Liquor.query.filter_by(id=liquor_id, user_id=current_user.id).first()
+        if liquor:
+            form.liquor.data = liquor_id
+    
     if form.validate_on_submit():
         try:
             new_batch = Batch(
@@ -145,32 +153,62 @@ def batch_formula():
             db.session.add(new_batch)
             db.session.flush()  # Get the ID without committing
 
-            # Loop through each ingredient entry in the form
+            # Process ingredients from form data
             ingredients_added = False
-            for ingredient_form in form.ingredients:
-                # Only add if ingredient is selected and quantity is provided
-                if ingredient_form.ingredient.data and ingredient_form.quantity.data:
-                    batch_formula = BatchFormula(
-                        batch_id=new_batch.id,
-                        ingredient_id=ingredient_form.ingredient.data,
-                        quantity=ingredient_form.quantity.data,
-                        unit=ingredient_form.unit.data
-                    )
-                    db.session.add(batch_formula)
-                    ingredients_added = True
+            
+            # Get ingredient data from request form
+            ingredient_ids = request.form.getlist('ingredient_id')
+            quantities = request.form.getlist('quantity')
+            units = request.form.getlist('unit')
+            
+            for i in range(len(ingredient_ids)):
+                if ingredient_ids[i] and quantities[i] and units[i]:
+                    try:
+                        batch_formula = BatchFormula(
+                            batch_id=new_batch.id,
+                            ingredient_id=int(ingredient_ids[i]),
+                            quantity=float(quantities[i]),
+                            unit=units[i]
+                        )
+                        db.session.add(batch_formula)
+                        ingredients_added = True
+                    except (ValueError, TypeError):
+                        continue
             
             if not ingredients_added:
                 db.session.rollback()
                 flash('At least one ingredient must be added to the batch.', 'error')
-                return render_template('batch_formula.html', form=form)
+                ingredients = Ingredient.query.all()
+                return render_template('batch_formula.html', form=form, ingredients=ingredients)
             
             db.session.commit()
             flash('Batch formula added successfully!', 'success')
-            return redirect(url_for('batch_formula'))
+            # Redirect to the liquor's batches page instead of back to the form
+            return redirect(url_for('liquor_batches', liquor_id=form.liquor.data))
             
         except Exception as e:
             db.session.rollback()
             flash(f'Error creating batch: {str(e)}', 'error')
-            return render_template('batch_formula.html', form=form)
+            ingredients = Ingredient.query.all()
+            return render_template('batch_formula.html', form=form, ingredients=ingredients)
+    else:
+        # Debug: Print form errors if validation fails
+        if form.errors:
+            print("Form errors:", form.errors)
+            for field_name, errors in form.errors.items():
+                for error in errors:
+                    flash(f'Error in {field_name}: {error}', 'error')
     
-    return render_template('batch_formula.html', form=form)
+    # Get all ingredients for the template
+    ingredients = Ingredient.query.all()
+    return render_template('batch_formula.html', form=form, ingredients=ingredients)
+
+
+@app.route('/liquor/<int:liquor_id>/batches')
+@login_required
+def liquor_batches(liquor_id):
+    """Display all batches for a specific liquor."""
+    liquor = Liquor.query.filter_by(id=liquor_id, user_id=current_user.id).first_or_404()
+    batches = Batch.query.filter_by(liquor_id=liquor_id).order_by(Batch.date.desc()).all()
+    
+    return render_template('liquor_batches.html', liquor=liquor, batches=batches)
