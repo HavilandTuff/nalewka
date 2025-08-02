@@ -63,12 +63,29 @@ class Batch(db.Model):
     date: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
     description: so.Mapped[str] = so.mapped_column(sa.Text())
     liquor_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Liquor.id), index=True)
+    
+    # Bottle tracking fields
+    bottle_count: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), default=0)
+    bottle_volume: so.Mapped[Optional[float]] = so.mapped_column(sa.Float(), default=0.0)  # in milliliters
+    bottle_volume_unit: so.Mapped[str] = so.mapped_column(sa.String(10), default='ml')
 
     liquor: so.Mapped[Liquor] = so.relationship(back_populates='batches')
     formulas: so.Mapped[list['BatchFormula']] = so.relationship(back_populates='batch', cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<Batch {self.id} - {self.description[:50]}...>'
+    
+    @property
+    def total_volume(self):
+        """Calculate total volume in milliliters."""
+        if self.bottle_count and self.bottle_volume:
+            return self.bottle_count * self.bottle_volume
+        return 0.0
+    
+    @property
+    def total_volume_liters(self):
+        """Calculate total volume in liters."""
+        return self.total_volume / 1000.0
 
 
 class BatchFormula(db.Model):

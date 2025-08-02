@@ -146,9 +146,17 @@ def batch_formula():
     
     if form.validate_on_submit():
         try:
+            # Convert bottle volume to milliliters if needed
+            bottle_volume_ml = form.bottle_volume.data
+            if form.bottle_volume_unit.data == 'l':
+                bottle_volume_ml = form.bottle_volume.data * 1000
+            
             new_batch = Batch(
                 description=form.batch_description.data,
-                liquor_id=form.liquor.data
+                liquor_id=form.liquor.data,
+                bottle_count=form.bottle_count.data or 0,
+                bottle_volume=bottle_volume_ml,
+                bottle_volume_unit='ml'  # Always store in ml
             )
             db.session.add(new_batch)
             db.session.flush()  # Get the ID without committing
@@ -212,3 +220,44 @@ def liquor_batches(liquor_id):
     batches = Batch.query.filter_by(liquor_id=liquor_id).order_by(Batch.date.desc()).all()
     
     return render_template('liquor_batches.html', liquor=liquor, batches=batches)
+
+
+@app.route('/batch/<int:batch_id>/edit_bottles', methods=['GET', 'POST'])
+@login_required
+def edit_batch_bottles(batch_id):
+    """Edit bottle information for a specific batch."""
+    batch = Batch.query.filter_by(id=batch_id).first_or_404()
+    
+    # Verify the batch belongs to the current user
+    if batch.liquor.user_id != current_user.id:
+        flash('You do not have permission to edit this batch.', 'error')
+        return redirect(url_for('liquor_batches', liquor_id=batch.liquor_id))
+    
+    if request.method == 'POST':
+        try:
+            bottle_count = request.form.get('bottle_count', type=int)
+            bottle_volume = request.form.get('bottle_volume', type=float)
+            bottle_volume_unit = request.form.get('bottle_volume_unit', 'ml')
+            
+            if bottle_count is not None and bottle_volume is not None:
+                # Convert to milliliters if needed
+                bottle_volume_ml = bottle_volume
+                if bottle_volume_unit == 'l':
+                    bottle_volume_ml = bottle_volume * 1000
+                
+                batch.bottle_count = bottle_count
+                batch.bottle_volume = bottle_volume_ml
+                batch.bottle_volume_unit = 'ml'  # Always store in ml
+                
+                db.session.commit()
+                flash('Bottle information updated successfully!', 'success')
+            else:
+                flash('Please provide valid bottle information.', 'error')
+                
+        except (ValueError, TypeError):
+            flash('Invalid bottle information provided.', 'error')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating bottle information: {str(e)}', 'error')
+    
+    return redirect(url_for('liquor_batches', liquor_id=batch.liquor_id))
