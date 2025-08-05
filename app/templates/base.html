@@ -115,6 +115,14 @@
         {% block content %}{% endblock %}
     </main>
 
+    <footer class="container text-center mt-5 mb-3">
+        {% if git_commit_hash %}
+            <p class="text-muted small">
+                Version: {{ git_commit_hash }}
+            </p>
+        {% endif %}
+    </footer>
+    
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
