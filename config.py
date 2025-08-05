@@ -3,7 +3,11 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or "secret"
+    """Base configuration class."""
+    # Fail loudly if the SECRET_KEY is not set in production.
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        raise ValueError("No SECRET_KEY set for Flask application")
     
     # Handle both development and production database URLs
     database_url = os.environ.get('DATABASE_URL')

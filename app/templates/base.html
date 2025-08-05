@@ -43,7 +43,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">
               <i class="bi bi-flask-florence"></i> Nalewka
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -52,18 +52,18 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">
+                        <a class="nav-link" href="{{ url_for('main.index') }}">
                             <i class="bi bi-house"></i> Home
                         </a>
                     </li>
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('create_liquor') }}">
+                            <a class="nav-link" href="{{ url_for('main.create_liquor') }}">
                                 <i class="bi bi-plus-circle"></i> New Liquor
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('batch_formula') }}">
+                            <a class="nav-link" href="{{ url_for('main.batch_formula') }}">
                                 <i class="bi bi-clipboard-plus"></i> Create Batch
                             </a>
                         </li>
@@ -76,19 +76,19 @@
                                 <i class="bi bi-person-circle"></i> {{ current_user.username }}
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <li><a class="dropdown-item" href="{{ url_for('main.logout') }}">
                                     <i class="bi bi-box-arrow-right"></i> Logout
                                 </a></li>
                             </ul>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('login') }}">
+                            <a class="nav-link" href="{{ url_for('main.login') }}">
                                 <i class="bi bi-box-arrow-in-right"></i> Login
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('register') }}">
+                            <a class="nav-link" href="{{ url_for('main.register') }}">
                                 <i class="bi bi-person-plus"></i> Register
                             </a>
                         </li>

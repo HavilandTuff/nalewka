@@ -1,263 +1,192 @@
-from flask import render_template, flash, redirect, url_for, request
+from flask import render_template, flash, redirect, url_for, request, Blueprint
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
-from app import app, db
-from app.forms import LoginForm, BatchFormulaForm, LiquorForm
+from app import db
+from app.forms import LoginForm, BatchFormulaForm, LiquorForm, RegistrationForm, EditBottlesForm
 from app.models import User, Batch, Ingredient, BatchFormula, Liquor
+from app.services import create_batch_with_ingredients, update_batch_bottles # <-- Import services
+from functools import wraps
 
+# Create a Blueprint object
+main_bp = Blueprint('main', __name__)
 
-@app.errorhandler(404)
-def not_found_error(error):
-    return render_template('404.html'), 404
+# Note: The error handlers should be registered on the blueprint or app factory
+# For simplicity, we'll assume they are registered in the app factory.
 
+def handle_db_errors(f):
+    """Decorator to handle database errors consistently"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            # db.session.rollback() is now handled in the service layer
+            flash(f'A database error occurred: {str(e)}', 'error')
+            return redirect(url_for('main.index'))
+    return decorated_function
 
-@app.errorhandler(500)
-def internal_error(error):
-    db.session.rollback()
-    return render_template('500.html'), 500
+def user_owns_liquor(liquor_id, user_id):
+    """Helper function remains useful for checks before rendering a form."""
+    return db.session.query(Liquor.id).filter_by(id=liquor_id, user_id=user_id).first() is not None
 
-
-@app.route('/')
-@app.route('/index')
+@main_bp.route('/')
+@main_bp.route('/index')
 def index():
+    liquors = []
     if current_user.is_authenticated:
-        liquors = Liquor.query.filter_by(user_id=current_user.id).all()
-    else:
-        liquors = []
+        try:
+            liquors = db.session.scalars(
+                sa.select(Liquor).where(Liquor.user_id == current_user.id)
+            ).all()
+        except Exception as e:
+            flash(f'Error loading liquors: {str(e)}', 'error')
     return render_template('index.html', liquors=liquors)
 
 
-@app.route('/login', methods=['GET', 'POST'])
+@main_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
     form = LoginForm()
     if form.validate_on_submit():
-        user = db.session.scalar(
-            sa.select(User).where(User.username == form.username.data))
+        user = db.session.scalar(sa.select(User).where(User.username == form.username.data))
         if user is None or not user.check_password(form.password.data):
             flash('Invalid username or password', 'error')
-            return redirect(url_for('login'))
+            return redirect(url_for('main.login'))
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
         if not next_page or not next_page.startswith('/'):
-            next_page = url_for('index')
+            next_page = url_for('main.index')
         flash(f'Welcome back, {user.username}!', 'success')
         return redirect(next_page)
     return render_template('login.html', title='Sign In', form=form)
 
 
-@app.route('/register', methods=['GET', 'POST'])
+@main_bp.route('/register', methods=['GET', 'POST'])
 def register():
+    # This route remains largely the same, but DB interactions could also be moved.
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    
-    if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
-        if not username or not email or not password:
-            flash('All fields are required', 'error')
-            return render_template('register.html')
-        
-        if len(username) < 3:
-            flash('Username must be at least 3 characters long', 'error')
-            return render_template('register.html')
-        
-        if len(password) < 6:
-            flash('Password must be at least 6 characters long', 'error')
-            return render_template('register.html')
-        
-        # Check if user already exists
-        existing_user = db.session.scalar(sa.select(User).where(User.username == username))
-        if existing_user:
-            flash('Username already exists', 'error')
-            return render_template('register.html')
-        
-        existing_email = db.session.scalar(sa.select(User).where(User.email == email))
-        if existing_email:
-            flash('Email already registered', 'error')
-            return render_template('register.html')
-        
-        # Create new user
-        user = User(username=username, email=email)
-        user.set_password(password)
-        
+        return redirect(url_for('main.index'))
+    form = RegistrationForm()
+    if form.validate_on_submit():
         try:
+            user = User(username=form.username.data, email=form.email.data)
+            user.set_password(form.password.data)
             db.session.add(user)
             db.session.commit()
             flash('Registration successful! Please log in.', 'success')
-            return redirect(url_for('login'))
+            return redirect(url_for('main.login'))
         except Exception as e:
             db.session.rollback()
             flash('Registration failed. Please try again.', 'error')
-            return render_template('register.html')
-    
-    return render_template('register.html')
+    return render_template('register.html', title='Register', form=form)
 
 
-@app.route('/logout')
+@main_bp.route('/logout')
 @login_required
 def logout():
     logout_user()
     flash("You've been logged out.", 'info')
-    return redirect(url_for('index'))
+    return redirect(url_for('main.index'))
 
 
-@app.route('/create_liquor', methods=['GET', 'POST'])
+@main_bp.route('/create_liquor', methods=['GET', 'POST'])
 @login_required
+@handle_db_errors
 def create_liquor():
+    # This route is simple enough to leave as is for now.
     form = LiquorForm()
     if form.validate_on_submit():
-        try:
-            liquor = Liquor(
-                name=form.name.data,
-                description=form.description.data,
-                user_id=current_user.id
-            )
-            db.session.add(liquor)
-            db.session.commit()
-            flash(f'Liquor "{liquor.name}" created successfully!', 'success')
-            return redirect(url_for('index'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating liquor: {str(e)}', 'error')
-            return render_template('create_liquor.html', form=form)
-    
+        liquor = Liquor(
+            name=form.name.data,
+            description=form.description.data,
+            user_id=current_user.id
+        )
+        db.session.add(liquor)
+        db.session.commit()
+        flash(f'Liquor "{liquor.name}" created successfully!', 'success')
+        return redirect(url_for('main.index'))
     return render_template('create_liquor.html', form=form)
 
-
-@app.route('/batch_formula', methods=['GET', 'POST'])
+# === REFACTORED ROUTE ===
+@main_bp.route('/batch_formula', methods=['GET', 'POST'])
 @login_required
 def batch_formula():
-    form = BatchFormulaForm()
-    
-    # Filter liquors to only show user's liquors
-    form.liquor.choices = [(liquor.id, liquor.name) for liquor in Liquor.query.filter_by(user_id=current_user.id).all()]
-    
-    # Handle pre-selected liquor from URL parameter
+    form = BatchFormulaForm(user_id=current_user.id)
     liquor_id = request.args.get('liquor', type=int)
     if liquor_id and request.method == 'GET':
-        # Verify the liquor belongs to the current user
-        liquor = Liquor.query.filter_by(id=liquor_id, user_id=current_user.id).first()
-        if liquor:
+        if user_owns_liquor(liquor_id, current_user.id):
             form.liquor.data = liquor_id
-    
+
     if form.validate_on_submit():
-        try:
-            # Convert bottle volume to milliliters if needed
-            bottle_volume_ml = form.bottle_volume.data
-            if form.bottle_volume_unit.data == 'l':
-                bottle_volume_ml = form.bottle_volume.data * 1000
-            
-            new_batch = Batch(
-                description=form.batch_description.data,
-                liquor_id=form.liquor.data,
-                bottle_count=form.bottle_count.data or 0,
-                bottle_volume=bottle_volume_ml,
-                bottle_volume_unit='ml'  # Always store in ml
-            )
-            db.session.add(new_batch)
-            db.session.flush()  # Get the ID without committing
+        # Delegate all business logic to the service function
+        new_batch, error = create_batch_with_ingredients(
+            form.data, form.liquor.data, current_user.id
+        )
 
-            # Process ingredients from form data
-            ingredients_added = False
-            
-            # Get ingredient data from request form
-            ingredient_ids = request.form.getlist('ingredient_id')
-            quantities = request.form.getlist('quantity')
-            units = request.form.getlist('unit')
-            
-            for i in range(len(ingredient_ids)):
-                if ingredient_ids[i] and quantities[i] and units[i]:
-                    try:
-                        batch_formula = BatchFormula(
-                            batch_id=new_batch.id,
-                            ingredient_id=int(ingredient_ids[i]),
-                            quantity=float(quantities[i]),
-                            unit=units[i]
-                        )
-                        db.session.add(batch_formula)
-                        ingredients_added = True
-                    except (ValueError, TypeError):
-                        continue
-            
-            if not ingredients_added:
-                db.session.rollback()
-                flash('At least one ingredient must be added to the batch.', 'error')
-                ingredients = Ingredient.query.all()
-                return render_template('batch_formula.html', form=form, ingredients=ingredients)
-            
-            db.session.commit()
-            flash('Batch formula added successfully!', 'success')
-            # Redirect to the liquor's batches page instead of back to the form
-            return redirect(url_for('liquor_batches', liquor_id=form.liquor.data))
-            
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating batch: {str(e)}', 'error')
-            ingredients = Ingredient.query.all()
-            return render_template('batch_formula.html', form=form, ingredients=ingredients)
-    else:
-        # Debug: Print form errors if validation fails
-        if form.errors:
-            print("Form errors:", form.errors)
-            for field_name, errors in form.errors.items():
-                for error in errors:
-                    flash(f'Error in {field_name}: {error}', 'error')
-    
-    # Get all ingredients for the template
-    ingredients = Ingredient.query.all()
-    return render_template('batch_formula.html', form=form, ingredients=ingredients)
+        if error:
+            flash(f'Error creating batch: {error}', 'error')
+        else:
+            flash(f'Batch formula created successfully with {len(new_batch.formulas)} ingredients!', 'success')
+            return redirect(url_for('main.liquor_batches', liquor_id=new_batch.liquor_id))
+
+    return render_template('batch_formula.html', form=form)
 
 
-@app.route('/liquor/<int:liquor_id>/batches')
+@main_bp.route('/liquor/<int:liquor_id>/batches')
 @login_required
+@handle_db_errors
 def liquor_batches(liquor_id):
-    """Display all batches for a specific liquor."""
-    liquor = Liquor.query.filter_by(id=liquor_id, user_id=current_user.id).first_or_404()
-    batches = Batch.query.filter_by(liquor_id=liquor_id).order_by(Batch.date.desc()).all()
+    liquor = db.session.get(Liquor, liquor_id)
+    if not liquor or liquor.user_id != current_user.id:
+        flash('Liquor not found or access denied.', 'error')
+        return redirect(url_for('main.index'))
     
+    batches = db.session.scalars(
+        sa.select(Batch).where(Batch.liquor_id == liquor_id).order_by(Batch.date.desc())
+    ).all()
     return render_template('liquor_batches.html', liquor=liquor, batches=batches)
 
-
-@app.route('/batch/<int:batch_id>/edit_bottles', methods=['GET', 'POST'])
+# === REFACTORED ROUTE ===
+@main_bp.route('/batch/<int:batch_id>/edit_bottles', methods=['GET', 'POST'])
 @login_required
 def edit_batch_bottles(batch_id):
-    """Edit bottle information for a specific batch."""
-    batch = Batch.query.filter_by(id=batch_id).first_or_404()
-    
-    # Verify the batch belongs to the current user
+    batch = db.session.get(Batch, batch_id)
+    if not batch:
+        flash('Batch not found.', 'error')
+        return redirect(url_for('main.index'))
     if batch.liquor.user_id != current_user.id:
         flash('You do not have permission to edit this batch.', 'error')
-        return redirect(url_for('liquor_batches', liquor_id=batch.liquor_id))
+        return redirect(url_for('main.liquor_batches', liquor_id=batch.liquor_id))
     
-    if request.method == 'POST':
-        try:
-            bottle_count = request.form.get('bottle_count', type=int)
-            bottle_volume = request.form.get('bottle_volume', type=float)
-            bottle_volume_unit = request.form.get('bottle_volume_unit', 'ml')
-            
-            if bottle_count is not None and bottle_volume is not None:
-                # Convert to milliliters if needed
-                bottle_volume_ml = bottle_volume
-                if bottle_volume_unit == 'l':
-                    bottle_volume_ml = bottle_volume * 1000
-                
-                batch.bottle_count = bottle_count
-                batch.bottle_volume = bottle_volume_ml
-                batch.bottle_volume_unit = 'ml'  # Always store in ml
-                
-                db.session.commit()
-                flash('Bottle information updated successfully!', 'success')
-            else:
-                flash('Please provide valid bottle information.', 'error')
-                
-        except (ValueError, TypeError):
-            flash('Invalid bottle information provided.', 'error')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating bottle information: {str(e)}', 'error')
+    form = EditBottlesForm(obj=batch) # Pre-populate form from the object
     
-    return redirect(url_for('liquor_batches', liquor_id=batch.liquor_id))
+    if form.validate_on_submit():
+        # Delegate logic to the service function
+        updated_batch, error = update_batch_bottles(batch_id, current_user.id, form.data)
+        
+        if error:
+            flash(f'Error updating bottle information: {error}', 'error')
+        else:
+            flash('Bottle information updated successfully!', 'success')
+            return redirect(url_for('main.liquor_batches', liquor_id=updated_batch.liquor_id))
+    
+    # Pre-populate form on GET request for better user experience
+    if request.method == 'GET':
+        form.bottle_count.data = batch.bottle_count or 0
+        if batch.bottle_volume:
+            form.bottle_volume.data = batch.bottle_volume
+            form.bottle_volume_unit.data = 'ml'
+
+    return render_template('edit_bottles.html', form=form, batch=batch)
+
+
+@main_bp.route('/batch/<int:batch_id>/details')
+@login_required
+@handle_db_errors
+def batch_details(batch_id):
+    batch = db.session.get(Batch, batch_id)
+    if not batch or batch.liquor.user_id != current_user.id:
+        flash('Batch or permission not found.', 'error')
+        return redirect(url_for('main.index'))
+    return render_template('batch_details.html', batch=batch)
