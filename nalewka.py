@@ -3,7 +3,7 @@ from app import create_app, db
 from app.models import User, Liquor, Ingredient, Batch, BatchFormula
 from dotenv import load_dotenv
 
-# Load environment variables from .env (for SECRET_KEY, DATABASE_URL)
+
 load_dotenv()
 
 # Create the application instance using the factory

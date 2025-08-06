@@ -81,56 +81,21 @@
                 
                 <hr class="my-4">
                 
-                <h3 class="mb-3"><i class="bi bi-list-ul"></i> Ingredients</h3>
-                <div id="ingredients-container">
-                    <div class="card mb-3 ingredient-card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Ingredient 1</h5>
-                            <button type="button" class="btn btn-sm btn-outline-danger remove-ingredient" style="display: none;">
-                                <i class="bi bi-trash"></i> Remove
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">Ingredient</label>
-                                        <select name="ingredient_id" class="form-select" required>
-                                            <option value="">Select ingredient...</option>
-                                            {% for ingredient in ingredients %}
-                                                <option value="{{ ingredient.id }}">{{ ingredient.name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">Quantity</label>
-                                        <input type="number" name="quantity" class="form-control" step="0.1" min="0.1" required>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">Unit</label>
-                                        <select name="unit" class="form-select" required>
-                                            <option value="">Select unit...</option>
-                                            <option value="grams">grams</option>
-                                            <option value="milliliters">milliliters</option>
-                                            <option value="pieces">pieces</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="mb-0"><i class="bi bi-list-ul"></i> Ingredients</h3>
                     <button type="button" class="btn btn-outline-primary" id="add-ingredient">
-                        <i class="bi bi-plus-circle"></i> Add Another Ingredient
+                        <i class="bi bi-plus-circle"></i> Add Ingredient
                     </button>
+                </div>
+
+                <div id="ingredients-container">
+                    {% for ingredient_form in form.ingredients %}
+                        {% include '_ingredient_entry.html' with context %}
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {% if form.ingredients.errors %}<div class="text-danger">{{ form.ingredients.errors[0] }}</div>{% endif %}
                 </div>
                 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end">
@@ -144,86 +109,58 @@
     </div>
 </div>
 
+<!-- Template for new ingredient entries -->
+<template id="ingredient-template">
+    {% set ingredient_form = form.ingredients.append_entry().form %}
+    {% include '_ingredient_entry.html' with context %}
+</template>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('ingredients-container');
     const addButton = document.getElementById('add-ingredient');
-    let ingredientCount = 1;
+    const template = document.getElementById('ingredient-template');
+    let ingredientCount = {{ form.ingredients|length }};
 
     addButton.addEventListener('click', function() {
+        // Clone the template
+        const clone = template.content.cloneNode(true);
+        const newEntry = clone.querySelector('.ingredient-entry');
+
+        // Update names and IDs to have the correct index
+        newEntry.querySelectorAll('select, input').forEach(el => {
+            el.name = el.name.replace('__prefix__', ingredientCount);
+            el.id = el.id.replace('__prefix__', ingredientCount);
+        });
+        newEntry.querySelectorAll('label').forEach(el => {
+            el.htmlFor = el.htmlFor.replace('__prefix__', ingredientCount);
+        });
+
+        container.appendChild(newEntry);
         ingredientCount++;
-        const newCard = document.createElement('div');
-        newCard.className = 'card mb-3 ingredient-card';
-        newCard.innerHTML = `
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Ingredient ${ingredientCount}</h5>
-                <button type="button" class="btn btn-sm btn-outline-danger remove-ingredient">
-                    <i class="bi bi-trash"></i> Remove
-                </button>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">Ingredient</label>
-                            <select name="ingredient_id" class="form-select" required>
-                                <option value="">Select ingredient...</option>
-                                {% for ingredient in ingredients %}
-                                    <option value="{{ ingredient.id }}">{{ ingredient.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">Quantity</label>
-                            <input type="number" name="quantity" class="form-control" step="0.1" min="0.1" required>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">Unit</label>
-                            <select name="unit" class="form-select" required>
-                                <option value="">Select unit...</option>
-                                <option value="grams">grams</option>
-                                <option value="milliliters">milliliters</option>
-                                <option value="pieces">pieces</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        container.appendChild(newCard);
+        updateRemoveButtons();
     });
 
-    // Event delegation for remove buttons
     container.addEventListener('click', function(e) {
         if (e.target.closest('.remove-ingredient')) {
-            const card = e.target.closest('.ingredient-card');
-            card.remove();
-            updateIngredientNumbers();
+            e.target.closest('.ingredient-entry').remove();
+            updateRemoveButtons();
         }
     });
 
-    function updateIngredientNumbers() {
-        const cards = container.querySelectorAll('.ingredient-card');
-        cards.forEach((card, index) => {
-            const title = card.querySelector('h5');
-            title.textContent = `Ingredient ${index + 1}`;
-            
-            // Show/hide remove button based on number of cards
-            const removeBtn = card.querySelector('.remove-ingredient');
-            if (cards.length === 1) {
-                removeBtn.style.display = 'none';
-            } else {
-                removeBtn.style.display = 'block';
+    function updateRemoveButtons() {
+        const entries = container.querySelectorAll('.ingredient-entry');
+        entries.forEach(entry => {
+            const removeBtn = entry.querySelector('.remove-ingredient');
+            if (removeBtn) {
+                // Hide the remove button if it's the only ingredient entry, otherwise show it.
+                removeBtn.style.display = (entries.length <= 1) ? 'none' : 'block';
             }
         });
-        ingredientCount = cards.length;
     }
+
+    // Initial check for remove buttons when the page loads
+    updateRemoveButtons();
 });
 </script>
 {% endblock %}

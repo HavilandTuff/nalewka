@@ -1,0 +1,34 @@
+<div class="card mb-3 ingredient-entry">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Ingredient</h5>
+        <button type="button" class="btn btn-sm btn-outline-danger remove-ingredient" style="display: none;">
+            <i class="bi bi-trash"></i> Remove
+        </button>
+    </div>
+    <div class="card-body">
+        {{ ingredient_form.hidden_tag() }}
+        <div class="row">
+            <div class="col-md-4">
+                <div class="mb-3">
+                    {{ ingredient_form.ingredient_id.label(class="form-label") }}
+                    {{ ingredient_form.ingredient_id(class="form-select" + (" is-invalid" if ingredient_form.ingredient_id.errors else "")) }}
+                    {% if ingredient_form.ingredient_id.errors %}<div class="invalid-feedback">{{ ingredient_form.ingredient_id.errors[0] }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-3">
+                    {{ ingredient_form.quantity.label(class="form-label") }}
+                    {{ ingredient_form.quantity(class="form-control" + (" is-invalid" if ingredient_form.quantity.errors else ""), step="0.1", min="0.1") }}
+                    {% if ingredient_form.quantity.errors %}<div class="invalid-feedback">{{ ingredient_form.quantity.errors[0] }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-3">
+                    {{ ingredient_form.unit.label(class="form-label") }}
+                    {{ ingredient_form.unit(class="form-select" + (" is-invalid" if ingredient_form.unit.errors else "")) }}
+                    {% if ingredient_form.unit.errors %}<div class="invalid-feedback">{{ ingredient_form.unit.errors[0] }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
