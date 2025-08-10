@@ -16,7 +16,7 @@ class User(UserMixin, db.Model):
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
     created_at: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
 
-    liquors: so.Mapped[list['Liquor']] = so.relationship(back_populates='author')
+    liquors: so.Mapped[list['Liquor']] = so.relationship(back_populates='user')
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -39,7 +39,7 @@ class Liquor(db.Model):
     description: so.Mapped[Optional[str]] = so.mapped_column(sa.Text())
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
 
-    author: so.Mapped[User] = so.relationship(back_populates='liquors')
+    user: so.Mapped[User] = so.relationship(back_populates='liquors')
     batches: so.Mapped[list['Batch']] = so.relationship(back_populates='liquor', cascade='all, delete-orphan')
 
     def __repr__(self):

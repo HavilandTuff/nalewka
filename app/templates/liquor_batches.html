@@ -84,10 +84,10 @@
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm" role="group">
-                                                <button type="button" class="btn btn-outline-primary" 
-                                                        onclick="viewBatchDetails({{ batch | tojson }})">
+                                                <a href="{{ url_for('main.batch_details', batch_id=batch.id) }}"
+                                                   class="btn btn-outline-primary">
                                                     <i class="bi bi-eye"></i> View
-                                                </button>
+                                                </a>
                                                 <a href="{{ url_for('main.edit_batch_bottles', batch_id=batch.id) }}"
                                                    class="btn btn-outline-secondary">
                                                     <i class="bi bi-pencil"></i> Edit Bottles
@@ -114,86 +114,4 @@
     </div>
 </div>
 
-<!-- Reusable Batch Detail Modal -->
-<div class="modal fade" id="batchDetailModal" tabindex="-1" aria-labelledby="batchDetailModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="batchDetailModalLabel"><i class="bi bi-clipboard-data"></i> Batch Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Batch Information</h6>
-                        <p><strong>Date:</strong> <span id="modal-batch-date"></span></p>
-                        <p><strong>Description:</strong> <span id="modal-batch-description"></span></p>
-                        <p><strong>Bottles:</strong> <span id="modal-batch-bottles"></span></p>
-                        <p><strong>Total Volume:</strong> <span id="modal-batch-volume"></span></p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Ingredients</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Ingredient</th>
-                                        <th>Quantity</th>
-                                        <th>Unit</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="modal-ingredients-table">
-                                    <!-- JS will populate this -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const batchDetailModal = new bootstrap.Modal(document.getElementById('batchDetailModal'));
-
-    window.viewBatchDetails = function(batch) {
-        // Format date
-        const date = new Date(batch.date);
-        document.getElementById('modal-batch-date').textContent = date.toLocaleString();
-        document.getElementById('modal-batch-description').textContent = batch.description;
-
-        // Bottle info
-        if (batch.bottle_count && batch.bottle_volume) {
-            document.getElementById('modal-batch-bottles').textContent = `${batch.bottle_count} × ${batch.bottle_volume}ml`;
-            document.getElementById('modal-batch-volume').textContent = `${(batch.total_volume_liters).toFixed(1)} liters`;
-        } else {
-            document.getElementById('modal-batch-bottles').textContent = 'No bottle information';
-            document.getElementById('modal-batch-volume').textContent = 'N/A';
-        }
-
-        // Ingredients table
-        const ingredientsTable = document.getElementById('modal-ingredients-table');
-        ingredientsTable.innerHTML = ''; // Clear previous data
-        if (batch.formulas && batch.formulas.length > 0) {
-            batch.formulas.forEach(formula => {
-                const row = `<tr>
-                                <td>${formula.ingredient.name}</td>
-                                <td>${formula.quantity}</td>
-                                <td>${formula.unit}</td>
-                             </tr>`;
-                ingredientsTable.innerHTML += row;
-            });
-        } else {
-            ingredientsTable.innerHTML = '<tr><td colspan="3" class="text-muted">No ingredients recorded</td></tr>';
-        }
-
-        batchDetailModal.show();
-    }
-});
-</script>
 {% endblock %} 
