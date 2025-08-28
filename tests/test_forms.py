@@ -5,7 +5,6 @@ from app.forms import (
     BatchFormulaForm,
     EditBottlesForm,
     LiquorForm,
-    LoginForm,
     RegistrationForm,
 )
 from app.models import Ingredient, Liquor, User
@@ -94,7 +93,9 @@ def test_batch_formula_form_invalid_quantity(app, form_test_data):
     """
     user = form_test_data["user"]
     with app.test_request_context():
-        form = BatchFormulaForm(user=user, formdata=MultiDict([("ingredients-0-quantity", -100.0)]))
+        form = BatchFormulaForm(
+            user=user, formdata=MultiDict([("ingredients-0-quantity", -100.0)])
+        )
         assert form.validate() is False
         assert "quantity" in form.errors["ingredients"][0]
         assert "Quantity must be positive." in form.errors["ingredients"][0]["quantity"]
