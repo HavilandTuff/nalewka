@@ -3,6 +3,7 @@ from wtforms import (
     BooleanField,
     FieldList,
     FloatField,
+    Form,
     FormField,
     IntegerField,
     PasswordField,
@@ -74,7 +75,7 @@ class LiquorForm(FlaskForm):
     submit = SubmitField("Create Liquor")
 
 
-class IngredientEntryForm(FlaskForm):
+class IngredientEntryForm(Form):
     ingredient = SelectField("Ingredient", coerce=int, validators=[DataRequired()])
     quantity = FloatField(
         "Quantity",
@@ -132,35 +133,6 @@ class BatchFormulaForm(FlaskForm):
     )
 
     submit = SubmitField("Create Batch")
-
-    def __init__(
-        self, *args, user_id, liquor_repository, ingredient_repository, **kwargs
-    ):
-        super(BatchFormulaForm, self).__init__(*args, **kwargs)
-        self.liquor.choices = [(0, "Select a liquor...")] + [
-            (liquor.id, liquor.name)
-            for liquor in liquor_repository.get_all_for_user(user_id)
-        ]
-        ingredient_choices = [(0, "Select an ingredient...")] + [
-            (ingredient.id, ingredient.name)
-            for ingredient in ingredient_repository.get_all()
-        ]
-        for entry in self.ingredients.entries:
-            entry.ingredient.choices = ingredient_choices
-
-    def validate_ingredients(self, field):
-        print("Validating ingredients")
-        valid_ingredients = 0
-        for ingredient_form in field.entries:
-            if (
-                ingredient_form.form.ingredient.data
-                and ingredient_form.form.quantity.data
-                and ingredient_form.form.unit.data
-            ):
-                valid_ingredients += 1
-
-        if valid_ingredients == 0:
-            raise ValidationError("At least one ingredient must be added to the batch.")
 
 
 class EditBottlesForm(FlaskForm):

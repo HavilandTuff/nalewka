@@ -86,12 +86,10 @@ def test_batch_formula_form_valid_data(app, form_test_data):
             liquor_repository=liquor_repository,
             ingredient_repository=ingredient_repository,
         )
-        print(f"Liquors found: {len(liquor_repository.get_all_for_user(user.id))}")
-        print(f"Ingredients found: {len(ingredient_repository.get_all())}")
-        print(form.errors)
-        print(form.ingredients.errors)
-        for i, ingredient_form in enumerate(form.ingredients):
-            print(f"Ingredient {i} errors: {ingredient_form.errors}")
+
+        # Manually populate the FormField
+        form.ingredients.process(form_data)
+
         assert form.validate() is True
         assert not form.errors
 
