@@ -1,5 +1,7 @@
-from app import db
-from app.models import Batch, BatchFormula, Liquor
+from app.repositories import BatchRepository, LiquorRepository
+
+liquor_repository = LiquorRepository()
+batch_repository = BatchRepository()
 
 
 def create_batch_with_ingredients(form_data, liquor_id, user_id):
@@ -7,8 +9,7 @@ def create_batch_with_ingredients(form_data, liquor_id, user_id):
     Service to create a batch and its ingredient formulas.
     Returns (batch_object, None) on success or (None, error_message) on failure.
     """
-    # Verify the liquor belongs to the user
-    liquor = db.session.get(Liquor, liquor_id)
+    liquor = liquor_repository.get(liquor_id)
     if not liquor or liquor.user_id != user_id:
         return None, "Liquor not found or access denied."
 
@@ -17,40 +18,34 @@ def create_batch_with_ingredients(form_data, liquor_id, user_id):
         if form_data.get("bottle_volume_unit") == "l" and bottle_volume_ml > 0:
             bottle_volume_ml *= 1000
 
-        new_batch = Batch(
-            description=form_data["batch_description"],
-            liquor_id=liquor_id,
-            bottle_count=form_data.get("bottle_count") or 0,
-            bottle_volume=bottle_volume_ml,
-            bottle_volume_unit="ml",
-        )
-        db.session.add(new_batch)
-        db.session.flush()  # Get the new_batch.id
+        batch_data = {
+            "description": form_data["batch_description"],
+            "liquor_id": liquor_id,
+            "bottle_count": form_data.get("bottle_count") or 0,
+            "bottle_volume": bottle_volume_ml,
+            "bottle_volume_unit": "ml",
+        }
 
-        ingredients_added = 0
+        formulas_data = []
         for ing_data in form_data.get("ingredients", []):
             if (
                 ing_data.get("ingredient")
                 and ing_data.get("quantity")
                 and ing_data.get("unit")
             ):
-                formula = BatchFormula(
-                    batch_id=new_batch.id,
-                    ingredient_id=ing_data["ingredient"],
-                    quantity=float(ing_data["quantity"]),
-                    unit=ing_data["unit"],
+                formulas_data.append(
+                    {
+                        "ingredient_id": ing_data["ingredient"],
+                        "quantity": float(ing_data["quantity"]),
+                        "unit": ing_data["unit"],
+                    }
                 )
-                db.session.add(formula)
-                ingredients_added += 1
 
-        if ingredients_added == 0:
-            db.session.rollback()
+        if not formulas_data:
             return None, "At least one valid ingredient must be added."
 
-        db.session.commit()
-        return new_batch, None
+        return batch_repository.create_with_formulas(batch_data, formulas_data)
     except Exception as e:
-        db.session.rollback()
         return None, f"An unexpected error occurred: {str(e)}"
 
 
@@ -59,7 +54,7 @@ def update_batch_bottles(batch_id, user_id, form_data):
     Service to update the bottle information for a batch.
     Returns (batch_object, None) on success or (None, error_message) on failure.
     """
-    batch = db.session.get(Batch, batch_id)
+    batch = batch_repository.get(batch_id)
     if not batch:
         return None, "Batch not found."
     if batch.liquor.user_id != user_id:
@@ -74,8 +69,8 @@ def update_batch_bottles(batch_id, user_id, form_data):
         batch.bottle_volume = bottle_volume_ml
         batch.bottle_volume_unit = "ml"
 
-        db.session.commit()
+        batch_repository.commit()
         return batch, None
     except Exception as e:
-        db.session.rollback()
+        batch_repository.rollback()
         return None, f"An unexpected error occurred: {str(e)}"

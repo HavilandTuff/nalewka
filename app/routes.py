@@ -1,10 +1,8 @@
 from functools import wraps
 
-import sqlalchemy as sa
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
-from app import db
 from app.forms import (
     BatchFormulaForm,
     EditBottlesForm,
@@ -12,11 +10,22 @@ from app.forms import (
     LoginForm,
     RegistrationForm,
 )
-from app.models import Batch, Liquor, User
+from app.models import Liquor, User
+from app.repositories import (
+    BatchRepository,
+    IngredientRepository,
+    LiquorRepository,
+    UserRepository,
+)
 from app.services import (
     create_batch_with_ingredients,
     update_batch_bottles,
 )
+
+user_repository = UserRepository()
+liquor_repository = LiquorRepository()
+batch_repository = BatchRepository()
+ingredient_repository = IngredientRepository()
 
 # Create a Blueprint object
 main_bp = Blueprint("main", __name__)
@@ -42,10 +51,7 @@ def handle_db_errors(f):
 
 def user_owns_liquor(liquor_id, user_id):
     """Helper function remains useful for checks before rendering a form."""
-    return (
-        db.session.query(Liquor.id).filter_by(id=liquor_id, user_id=user_id).first()
-        is not None
-    )
+    return liquor_repository.user_owns_liquor(liquor_id, user_id)
 
 
 @main_bp.route("/")
@@ -54,9 +60,7 @@ def index():
     liquors = []
     if current_user.is_authenticated:
         try:
-            liquors = db.session.scalars(
-                sa.select(Liquor).where(Liquor.user_id == current_user.id)
-            ).all()
+            liquors = liquor_repository.get_all_for_user(current_user.id)
         except Exception as e:
             flash(f"Error loading liquors: {str(e)}", "error")
     return render_template("index.html", liquors=liquors)
@@ -68,9 +72,7 @@ def login():
         return redirect(url_for("main.index"))
     form = LoginForm()
     if form.validate_on_submit():
-        user = db.session.scalar(
-            sa.select(User).where(User.username == form.username.data)
-        )
+        user = user_repository.get_by_username(form.username.data)
         if user is None or not user.check_password(form.password.data):
             flash("Invalid username or password", "error")
             return redirect(url_for("main.login"))
@@ -88,17 +90,17 @@ def register():
     # This route remains largely the same, but DB interactions could also be moved.
     if current_user.is_authenticated:
         return redirect(url_for("main.index"))
-    form = RegistrationForm()
+    form = RegistrationForm(user_repository=user_repository)
     if form.validate_on_submit():
         try:
             user = User(username=form.username.data, email=form.email.data)
             user.set_password(form.password.data)
-            db.session.add(user)
-            db.session.commit()
+            user_repository.add(user)
+            user_repository.commit()
             flash("Registration successful! Please log in.", "success")
             return redirect(url_for("main.login"))
         except Exception:
-            db.session.rollback()
+            user_repository.rollback()
             flash("Registration failed. Please try again.", "error")
     return render_template("register.html", title="Register", form=form)
 
@@ -123,8 +125,8 @@ def create_liquor():
             description=form.description.data,
             user_id=current_user.id,
         )
-        db.session.add(liquor)
-        db.session.commit()
+        liquor_repository.add(liquor)
+        liquor_repository.commit()
         flash(f'Liquor "{liquor.name}" created successfully!', "success")
         return redirect(url_for("main.index"))
     return render_template("create_liquor.html", form=form)
@@ -134,7 +136,11 @@ def create_liquor():
 @main_bp.route("/batch_formula", methods=["GET", "POST"])
 @login_required
 def batch_formula():
-    form = BatchFormulaForm(user_id=current_user.id)
+    form = BatchFormulaForm(
+        user_id=current_user.id,
+        liquor_repository=liquor_repository,
+        ingredient_repository=ingredient_repository,
+    )
     liquor_id = request.args.get("liquor", type=int)
     if liquor_id and request.method == "GET":
         if user_owns_liquor(liquor_id, current_user.id):
@@ -167,14 +173,12 @@ def batch_formula():
 @login_required
 @handle_db_errors
 def liquor_batches(liquor_id):
-    liquor = db.session.get(Liquor, liquor_id)
+    liquor = liquor_repository.get(liquor_id)
     if not liquor or liquor.user_id != current_user.id:
         flash("Liquor not found or access denied.", "error")
         return redirect(url_for("main.index"))
 
-    batches = db.session.scalars(
-        sa.select(Batch).where(Batch.liquor_id == liquor_id).order_by(Batch.date.desc())
-    ).all()
+    batches = batch_repository.get_all_for_liquor(liquor_id)
     return render_template("liquor_batches.html", liquor=liquor, batches=batches)
 
 
@@ -182,7 +186,7 @@ def liquor_batches(liquor_id):
 @main_bp.route("/batch/<int:batch_id>/edit_bottles", methods=["GET", "POST"])
 @login_required
 def edit_batch_bottles(batch_id):
-    batch = db.session.get(Batch, batch_id)
+    batch = batch_repository.get(batch_id)
     if not batch:
         flash("Batch not found.", "error")
         return redirect(url_for("main.index"))
@@ -220,7 +224,7 @@ def edit_batch_bottles(batch_id):
 @login_required
 @handle_db_errors
 def batch_details(batch_id):
-    batch = db.session.get(Batch, batch_id)
+    batch = batch_repository.get(batch_id)
     if not batch or batch.liquor.user_id != current_user.id:
         flash("Batch or permission not found.", "error")
         return redirect(url_for("main.index"))

@@ -13,8 +13,6 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Email, Length, NumberRange, ValidationError
 
-from app.models import Ingredient, Liquor, User
-
 
 class LoginForm(FlaskForm):
     username = StringField(
@@ -51,16 +49,18 @@ class RegistrationForm(FlaskForm):
     )
     submit = SubmitField("Register")
 
+    def __init__(self, *args, user_repository, **kwargs):
+        super(RegistrationForm, self).__init__(*args, **kwargs)
+        self.user_repository = user_repository
+
     def validate_username(self, username):
-        user = User.query.filter_by(username=username.data).first()
-        if user is not None:
+        if self.user_repository.get_by_username(username.data):
             raise ValidationError(
                 "Username already exists. Please choose a different one."
             )
 
     def validate_email(self, email):
-        user = User.query.filter_by(email=email.data).first()
-        if user is not None:
+        if self.user_repository.get_by_email(email.data):
             raise ValidationError(
                 "Email already registered. Please use a different email."
             )
@@ -98,13 +98,6 @@ class IngredientEntryForm(FlaskForm):
         validators=[DataRequired()],
     )
 
-    def __init__(self, *args, **kwargs):
-        super(IngredientEntryForm, self).__init__(*args, **kwargs)
-        # Populate ingredient choices
-        self.ingredient.choices = [(0, "Select an ingredient...")] + [
-            (ingredient.id, ingredient.name) for ingredient in Ingredient.query.all()
-        ]
-
 
 class BatchFormulaForm(FlaskForm):
     batch_description = TextAreaField(
@@ -120,7 +113,6 @@ class BatchFormulaForm(FlaskForm):
     )
     liquor = SelectField("Liquor", coerce=int, validators=[DataRequired()])
 
-    # Bottle information fields
     bottle_count = IntegerField(
         "Number of Bottles",
         validators=[NumberRange(min=0, message="Bottle count must be 0 or greater")],
@@ -135,40 +127,36 @@ class BatchFormulaForm(FlaskForm):
         "Volume Unit", choices=[("ml", "Milliliters"), ("l", "Liters")], default="ml"
     )
 
-    # Dynamic ingredients list
     ingredients = FieldList(
         FormField(IngredientEntryForm), min_entries=1, max_entries=20
     )
 
     submit = SubmitField("Create Batch")
 
-    def __init__(self, *args, **kwargs):
-        user_id = kwargs.pop("user_id", None)
-        super(BatchFormulaForm, self).__init__(*args, **kwargs)
+    def __init__(
+        self, *args, user_id, liquor_repository, ingredient_repository, **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self.user_id = user_id
+        self.liquor_repository = liquor_repository
+        self.ingredient_repository = ingredient_repository
 
-        # Initialize liquor choices for specific user
-        if user_id:
-            self.liquor.choices = [(0, "Select a liquor...")] + [
-                (liquor.id, liquor.name)
-                for liquor in Liquor.query.filter_by(user_id=user_id).all()
-            ]
-        else:
-            self.liquor.choices = [(0, "Select a liquor...")]
+        # Populate liquor choices
+        self.liquor.choices = [(0, "Select a liquor...")] + [
+            (liquor.id, liquor.name)
+            for liquor in liquor_repository.get_all_for_user(user_id)
+        ]
 
-    def validate_ingredients(self, field):
-        """Validate that at least one ingredient is properly filled out"""
-        valid_ingredients = 0
-        for ingredient_form in field.data:
-            if (
-                ingredient_form.get("ingredient")
-                and ingredient_form.get("ingredient") != 0
-                and ingredient_form.get("quantity")
-                and ingredient_form.get("unit")
-            ):
-                valid_ingredients += 1
+    def process(self, formdata=None, obj=None, **kwargs):
+        # Set ingredient choices BEFORE processing
+        ingredient_choices = [(0, "Select an ingredient...")] + [
+            (ingredient.id, ingredient.name)
+            for ingredient in self.ingredient_repository.get_all()
+        ]
+        for entry in self.ingredients:
+            entry.ingredient.choices = ingredient_choices
 
-        if valid_ingredients == 0:
-            raise ValidationError("At least one ingredient must be added to the batch.")
+        super().process(formdata=formdata, obj=obj, **kwargs)
 
 
 class EditBottlesForm(FlaskForm):

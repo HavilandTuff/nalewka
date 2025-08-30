@@ -27,9 +27,29 @@ A Flask-based web application for managing homemade liquor recipes and batches.
    ```
 
 3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+   - For production, install from `requirements.txt`:
+     ```bash
+     pip install -r requirements.txt
+     ```
+   - For development, install from `requirements-dev.txt`:
+     ```bash
+     pip install -r requirements-dev.txt
+     ```
+
+### Dependency Management
+
+This project uses `pip-tools` to manage dependencies.
+
+- Application dependencies are defined in `requirements.in`.
+- Development dependencies are defined in `requirements-dev.in`.
+
+To update the compiled `requirements.txt` and `requirements-dev.txt` files after changing the `.in` files, run the following commands:
+
+```bash
+pip-compile requirements.in
+pip-compile requirements-dev.in
+```
+
 
 4. **Set up environment variables**:
    ```bash
