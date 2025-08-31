@@ -6,25 +6,25 @@ This document outlines the plan for refactoring the `nalewka` project to improve
 
 ### Phase 1: Foundational Improvements (Enhancing Code Quality and Consistency)
 
-- [ ] **1. Introduce Code Formatting and Linting:**
-    - [ ] Integrate `black` for automated code formatting.
-    - [ ] Integrate `ruff` for linting to enforce a consistent style and catch potential errors.
+- [x] **1. Introduce Code Formatting and Linting:**
+    - [x] Integrate `black` for automated code formatting.
+    - [x] Integrate `ruff` for linting to enforce a consistent style and catch potential errors.
 
-- [ ] **2. Enhance Dependency Management:**
-    - [ ] Migrate from `requirements.txt` to `poetry` or `pip-tools`.
-    - [ ] Create a `pyproject.toml` file and a lock file.
+- [x] **2. Enhance Dependency Management:**
+    - [x] Migrate from `requirements.txt` to `pip-tools`.
+    - [x] Create a `pyproject.toml` file and a lock file.
 
-- [ ] **3. Implement a Comprehensive Test Suite:**
-    - [ ] Create a `tests/` directory.
-    - [ ] Implement unit and integration tests for models, services, and routes using `pytest`.
+- [x] **3. Implement a Comprehensive Test Suite:**
+    - [x] Create a `tests/` directory.
+    - [x] Implement unit and integration tests for models, services, and routes using `pytest`.
 
 ---
 
 ### Phase 2: Code and Structure Refactoring (Improving Separation of Concerns)
 
-- [ ] **4. Strengthen the Service Layer and Introduce a Repository Pattern:**
-    - [ ] Move all business logic from routes to the service layer.
-    - [ ] Create a `app/repositories` directory for all database interactions.
+- [x] **4. Strengthen the Service Layer and Introduce a Repository Pattern:**
+    - [x] Move all business logic from routes to the service layer.
+    - [x] Create a `app/repositories` directory for all database interactions.
 
 - [ ] **5. Improve Configuration Management:**
     - [ ] Refactor `config.py` to use `pydantic` for settings management.
