@@ -77,6 +77,12 @@ class LiquorForm(FlaskForm):
 
 class IngredientEntryForm(Form):
     ingredient = SelectField("Ingredient", coerce=int, validators=[DataRequired()])
+
+    def __init__(self, *args, ingredient_choices=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if ingredient_choices:
+            self.ingredient.choices = ingredient_choices
+
     quantity = FloatField(
         "Quantity",
         validators=[
@@ -133,6 +139,19 @@ class BatchFormulaForm(FlaskForm):
     )
 
     submit = SubmitField("Create Batch")
+
+    def __init__(self, *args, liquor_repository, ingredient_repository, **kwargs):
+        super().__init__(*args, **kwargs)
+        user_id = kwargs.get("user_id")
+        self.liquor.choices = [
+            (liquor.id, liquor.name)
+            for liquor in liquor_repository.get_all_for_user(user_id)
+        ]
+        ingredient_choices = [
+            (ingredient.id, ingredient.name)
+            for ingredient in ingredient_repository.get_all()
+        ]
+        self.ingredients.form_kwargs = {"ingredient_choices": ingredient_choices}
 
 
 class EditBottlesForm(FlaskForm):

@@ -69,10 +69,10 @@ def test_batch_formula_form_valid_data(app, form_test_data):
             ("bottle_volume_unit", "ml"),
             ("ingredients-0-ingredient", ingredients[0].id),
             ("ingredients-0-quantity", 500.0),
-            ("ingredients-0-unit", "grams"),
+            ("ingredients-0-unit", "g"),
             ("ingredients-1-ingredient", ingredients[1].id),
             ("ingredients-1-quantity", 250.0),
-            ("ingredients-1-unit", "grams"),
+            ("ingredients-1-unit", "g"),
         ]
     )
 
@@ -89,6 +89,11 @@ def test_batch_formula_form_valid_data(app, form_test_data):
 
         # Manually populate the FormField
         form.ingredients.process(form_data)
+
+        for entry in form.ingredients.entries:
+            entry.form.ingredient.choices = [
+                (i.id, i.name) for i in ingredient_repository.get_all()
+            ]
 
         assert form.validate() is True
         assert not form.errors
@@ -112,6 +117,10 @@ def test_batch_formula_form_missing_required_fields(app, form_test_data):
             liquor_repository=liquor_repository,
             ingredient_repository=ingredient_repository,
         )
+        for entry in form.ingredients.entries:
+            entry.form.ingredient.choices = [
+                (i.id, i.name) for i in ingredient_repository.get_all()
+            ]
         assert form.validate() is False
 
         # Check for expected errors
@@ -141,6 +150,10 @@ def test_batch_formula_form_invalid_quantity(app, form_test_data):
             liquor_repository=liquor_repository,
             ingredient_repository=ingredient_repository,
         )
+        for entry in form.ingredients.entries:
+            entry.form.ingredient.choices = [
+                (i.id, i.name) for i in ingredient_repository.get_all()
+            ]
         assert form.validate() is False
         assert "quantity" in form.errors["ingredients"][0]
         assert (
@@ -178,6 +191,10 @@ def test_batch_formula_form_no_ingredients(app, form_test_data):
             liquor_repository=liquor_repository,
             ingredient_repository=ingredient_repository,
         )
+        for entry in form.ingredients.entries:
+            entry.form.ingredient.choices = [
+                (i.id, i.name) for i in ingredient_repository.get_all()
+            ]
         assert form.validate() is False
         assert "ingredients" in form.errors
 
