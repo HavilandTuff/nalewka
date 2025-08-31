@@ -6,13 +6,12 @@
         </button>
     </div>
     <div class="card-body">
-        {{ ingredient_form.hidden_tag() }}
         <div class="row">
             <div class="col-md-4">
                 <div class="mb-3">
-                    {{ ingredient_form.ingredient_id.label(class="form-label") }}
-                    {{ ingredient_form.ingredient_id(class="form-select" + (" is-invalid" if ingredient_form.ingredient_id.errors else "")) }}
-                    {% if ingredient_form.ingredient_id.errors %}<div class="invalid-feedback">{{ ingredient_form.ingredient_id.errors[0] }}</div>{% endif %}
+                    {{ ingredient_form.ingredient.label(class="form-label") }}
+                    {{ ingredient_form.ingredient(class="form-select" + (" is-invalid" if ingredient_form.ingredient.errors else "")) }}
+                    {% if ingredient_form.ingredient.errors %}<div class="invalid-feedback">{{ ingredient_form.ingredient.errors[0] }}</div>{% endif %}
                 </div>
             </div>
             <div class="col-md-4">

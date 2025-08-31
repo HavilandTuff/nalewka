@@ -136,17 +136,11 @@ def create_liquor():
 @main_bp.route("/batch_formula", methods=["GET", "POST"])
 @login_required
 def batch_formula():
-    form = BatchFormulaForm()
-    form.liquor.choices = [(0, "Select a liquor...")] + [
-        (liquor.id, liquor.name)
-        for liquor in liquor_repository.get_all_for_user(current_user.id)
-    ]
-    ingredient_choices = [(0, "Select an ingredient...")] + [
-        (ingredient.id, ingredient.name)
-        for ingredient in ingredient_repository.get_all()
-    ]
-    for entry in form.ingredients.entries:
-        entry.ingredient.choices = ingredient_choices
+    form = BatchFormulaForm(
+        liquor_repository=liquor_repository,
+        ingredient_repository=ingredient_repository,
+        user_id=current_user.id,
+    )
 
     liquor_id = request.args.get("liquor", type=int)
     if liquor_id and request.method == "GET":
