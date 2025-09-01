@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     )
     SQLALCHEMY_DATABASE_URI: str = Field(
         "sqlite:///site.db",
-        pattern=r"^sqlite:///.*\\.db$|^postgresql\\+psycopg2://.*$",
+        pattern=r"^sqlite:///.*\.db$|^postgresql\+psycopg2://.*$",
         description="Database connection URI. Supports SQLite and PostgreSQL.",
     )
 
@@ -67,7 +67,9 @@ class Settings(BaseSettings):
     MAX_CONTENT_LENGTH: int = Field(
         16 * 1024 * 1024,
         ge=0,
-        description="Maximum allowed content length for uploads in bytes (default 16MB).",
+        description=(
+            "Maximum allowed content length for uploads in bytes (default 16MB)."
+        ),
     )
 
     # Testing settings
