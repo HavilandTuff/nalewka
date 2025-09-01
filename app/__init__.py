@@ -5,7 +5,7 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
-from config import Config
+from config import settings
 
 # Extensions are initialized here but not attached to an app
 db = SQLAlchemy()
@@ -32,9 +32,10 @@ def get_git_commit_hash():
         return None
 
 
-def create_app(config_class=Config):
+def create_app():
     app = Flask(__name__)
-    app.config.from_object(config_class)
+    for key, value in settings.model_dump().items():
+        app.config[key] = value
 
     app.config["GIT_COMMIT_HASH"] = get_git_commit_hash()
     if app.config["GIT_COMMIT_HASH"] is None:
@@ -62,6 +63,6 @@ def create_app(config_class=Config):
     @app.context_processor
     def inject_git_hash():
         """Injects the git commit hash into all templates."""
-        return dict(git_commit_hash=app.config.get("GIT_COMMIT_HASH"))
+        return dict(git_commit_hash=app.config["GIT_COMMIT_HASH"])
 
     return app

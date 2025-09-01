@@ -55,7 +55,7 @@ def index():
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
-    
+
     form = LoginForm()
     if form.validate_on_submit():
         try:
@@ -64,7 +64,7 @@ def login():
             if user is None or not user.check_password(form.password.data):
                 flash('Invalid username or password', 'error')
                 return redirect(url_for('login'))
-            
+
             login_user(user, remember=form.remember_me.data)
             next_page = request.args.get('next')
             if not next_page or not next_page.startswith('/'):
@@ -74,7 +74,7 @@ def login():
         except Exception as e:
             flash('Login error occurred. Please try again.', 'error')
             return redirect(url_for('login'))
-    
+
     return render_template('login.html', title='Sign In', form=form)
 
 
@@ -82,7 +82,7 @@ def login():
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
-    
+
     form = RegistrationForm()
     if form.validate_on_submit():
         try:
@@ -91,7 +91,7 @@ def register():
                 email=form.email.data
             )
             user.set_password(form.password.data)
-            
+
             db.session.add(user)
             db.session.commit()
             flash('Registration successful! Please log in.', 'success')
@@ -99,7 +99,7 @@ def register():
         except Exception as e:
             db.session.rollback()
             flash('Registration failed. Please try again.', 'error')
-    
+
     return render_template('register.html', title='Register', form=form)
 
 
@@ -126,7 +126,7 @@ def create_liquor():
         db.session.commit()
         flash(f'Liquor "{liquor.name}" created successfully!', 'success')
         return redirect(url_for('index'))
-    
+
     return render_template('create_liquor.html', form=form)
 
 
@@ -139,7 +139,7 @@ def create_liquor():
 def batch_formula():
     form = BatchFormulaForm(user_id=current_user.id)
     # ... pre-selection logic ...
-    
+
     if form.validate_on_submit():
         new_batch, error = create_batch_with_ingredients(form.data, form.liquor.data)
         if error:
@@ -147,7 +147,7 @@ def batch_formula():
         else:
             flash(f'Batch formula created successfully with {len(new_batch.formulas)} ingredients!', 'success')
             return redirect(url_for('liquor_batches', liquor_id=new_batch.liquor_id))
-    
+
     return render_template('batch_formula.html', form=form)
 
 
@@ -160,7 +160,7 @@ def liquor_batches(liquor_id):
         if not liquor:
             flash('Liquor not found or access denied.', 'error')
             return redirect(url_for('index'))
-        
+
         batches = Batch.query.filter_by(liquor_id=liquor_id).order_by(Batch.date.desc()).all()
         return render_template('liquor_batches.html', liquor=liquor, batches=batches)
     except Exception as e:
@@ -177,14 +177,14 @@ def edit_batch_bottles(batch_id):
         if not batch:
             flash('Batch not found.', 'error')
             return redirect(url_for('index'))
-        
+
         # Verify the batch belongs to the current user
         if batch.liquor.user_id != current_user.id:
             flash('You do not have permission to edit this batch.', 'error')
             return redirect(url_for('liquor_batches', liquor_id=batch.liquor_id))
-        
+
         form = EditBottlesForm()
-        
+
         if request.method == 'GET':
             # Pre-populate form with current data
             form.bottle_count.data = batch.bottle_count or 0
@@ -192,23 +192,23 @@ def edit_batch_bottles(batch_id):
             if batch.bottle_volume:
                 form.bottle_volume.data = batch.bottle_volume
                 form.bottle_volume_unit.data = 'ml'
-            
+
         if form.validate_on_submit():
             # Convert to milliliters if needed
             bottle_volume_ml = form.bottle_volume.data
             if form.bottle_volume_unit.data == 'l':
                 bottle_volume_ml = bottle_volume_ml * 1000
-            
+
             batch.bottle_count = form.bottle_count.data
             batch.bottle_volume = bottle_volume_ml
             batch.bottle_volume_unit = 'ml'  # Always store in ml
-            
+
             db.session.commit()
             flash('Bottle information updated successfully!', 'success')
             return redirect(url_for('liquor_batches', liquor_id=batch.liquor_id))
-        
+
         return render_template('edit_bottles.html', form=form, batch=batch)
-        
+
     except Exception as e:
         db.session.rollback()
         flash(f'Error updating bottle information: {str(e)}', 'error')
@@ -224,14 +224,14 @@ def batch_details(batch_id):
         if not batch:
             flash('Batch not found.', 'error')
             return redirect(url_for('index'))
-        
+
         # Verify the batch belongs to the current user
         if batch.liquor.user_id != current_user.id:
             flash('You do not have permission to view this batch.', 'error')
             return redirect(url_for('index'))
-        
+
         return render_template('batch_details.html', batch=batch)
-        
+
     except Exception as e:
         flash(f'Error loading batch details: {str(e)}', 'error')
         return redirect(url_for('index'))

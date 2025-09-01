@@ -26,8 +26,8 @@ This document outlines the plan for refactoring the `nalewka` project to improve
     - [x] Move all business logic from routes to the service layer.
     - [x] Create a `app/repositories` directory for all database interactions.
 
-- [ ] **5. Improve Configuration Management:**
-    - [ ] Refactor `config.py` to use `pydantic` for settings management.
+- [x] **5. Improve Configuration Management:**
+    - [x] Refactor `config.py` to use `pydantic` for settings management.
 
 - [ ] **6. Enforce Static Typing:**
     - [ ] Add type hints throughout the codebase.

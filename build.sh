@@ -10,4 +10,4 @@ pip install -r requirements.txt
 echo "Setting up database..."
 flask db upgrade
 
-echo "Build completed successfully!" 
+echo "Build completed successfully!"

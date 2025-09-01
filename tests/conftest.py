@@ -2,13 +2,12 @@ import pytest
 
 from app import create_app
 from app import db as _db
-from config import TestingConfig
 
 
 @pytest.fixture(scope="session")
 def app():
     """Create and configure a new app instance for each test session."""
-    app = create_app(config_class=TestingConfig)
+    app = create_app()
 
     # Establish an application context before running the tests
     with app.app_context():

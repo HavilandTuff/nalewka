@@ -210,4 +210,4 @@ Render automatically backs up PostgreSQL databases:
 ### Paid Plans
 - **Web Service**: $7/month (unlimited)
 - **Database**: $7/month (unlimited)
-- **Total**: ~$14/month (unlimited usage) 
+- **Total**: ~$14/month (unlimited usage)

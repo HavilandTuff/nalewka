@@ -19,4 +19,4 @@ services:
 databases:
   - name: nalewka-db
     databaseName: nalewka
-    user: nalewka_user 
+    user: nalewka_user
