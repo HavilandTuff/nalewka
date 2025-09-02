@@ -14,7 +14,10 @@ def init_database() -> None:
     """Initialize the database tables."""
     print("Creating database tables...")
     with app.app_context():
-        db.create_all()
+        # Use Flask-Migrate to create tables
+        from flask_migrate import upgrade
+
+        upgrade()
         print("✅ Database tables created successfully!")
 
 
