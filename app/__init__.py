@@ -5,6 +5,7 @@ from flask import Flask, render_template
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
 
 from config import settings
 
@@ -14,6 +15,7 @@ migrate: Migrate = Migrate()
 login: LoginManager = LoginManager()
 login.login_view = "login"
 login.login_message = "Please log in to access this page."
+csrf = CSRFProtect()
 
 
 def get_git_commit_hash() -> Optional[str]:
@@ -46,6 +48,7 @@ def create_app() -> Flask:
     db.init_app(app)
     migrate.init_app(app, db)
     login.init_app(app)
+    csrf.init_app(app)
 
     # Import and register the blueprint
     from app.routes import main_bp
