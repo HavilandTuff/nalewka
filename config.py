@@ -21,7 +21,7 @@ class Settings(BaseSettings):
         description="Database connection URI. Supports SQLite and PostgreSQL.",
     )
 
-    # Mail server settings
+    # Mail server settings (made optional for deployment)
     MAIL_SERVER: str = Field(
         "smtp.googlemail.com", min_length=1, description="SMTP server address."
     )
@@ -30,29 +30,30 @@ class Settings(BaseSettings):
         True, description="Enable TLS for mail server connection."
     )
     MAIL_USERNAME: str = Field(
-        ..., min_length=1, description="Username for mail server authentication."
+        "", min_length=0, description="Username for mail server authentication."
     )
     MAIL_PASSWORD: str = Field(
-        ..., min_length=1, description="Password for mail server authentication."
+        "", min_length=0, description="Password for mail server authentication."
     )
     ADMIN_EMAIL: EmailStr = Field(
-        ..., description="Administrator's email address for notifications."
+        "admin@example.com",
+        description="Administrator's email address for notifications.",
     )
 
-    # reCAPTCHA settings
+    # reCAPTCHA settings (made optional for deployment)
     RECAPTCHA_PUBLIC_KEY: str = Field(
-        ..., min_length=1, description="Google reCAPTCHA public key."
+        "", min_length=0, description="Google reCAPTCHA public key."
     )
     RECAPTCHA_PRIVATE_KEY: str = Field(
-        ..., min_length=1, description="Google reCAPTCHA private key."
+        "", min_length=0, description="Google reCAPTCHA private key."
     )
 
-    # Google OAuth settings
+    # Google OAuth settings (made optional for deployment)
     GOOGLE_CLIENT_ID: str = Field(
-        ..., min_length=1, description="Google OAuth client ID."
+        "", min_length=0, description="Google OAuth client ID."
     )
     GOOGLE_CLIENT_SECRET: str = Field(
-        ..., min_length=1, description="Google OAuth client secret."
+        "", min_length=0, description="Google OAuth client secret."
     )
     GOOGLE_DISCOVERY_URL: str = Field(
         "https://accounts.google.com/.well-known/openid-configuration",

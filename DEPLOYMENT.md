@@ -114,6 +114,13 @@ After deployment, you need to initialize the database:
 | `FLASK_ENV` | Flask environment | Yes | `production` |
 | `SECRET_KEY` | Secret key for sessions | Yes | Auto-generated |
 | `DATABASE_URL` | PostgreSQL connection string | Yes | Auto-set by Render |
+| `MAIL_USERNAME` | SMTP username for email notifications | No | Empty |
+| `MAIL_PASSWORD` | SMTP password for email notifications | No | Empty |
+| `ADMIN_EMAIL` | Admin email for notifications | No | `admin@example.com` |
+| `RECAPTCHA_PUBLIC_KEY` | Google reCAPTCHA public key | No | Empty |
+| `RECAPTCHA_PRIVATE_KEY` | Google reCAPTCHA private key | No | Empty |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID | No | Empty |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | No | Empty |
 | `PYTHON_VERSION` | Python version | No | `3.10.0` |
 
 ## Troubleshooting
