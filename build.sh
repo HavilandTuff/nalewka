@@ -9,5 +9,6 @@ pip install -r requirements.txt
 # Initialize database and run migrations
 echo "Setting up database..."
 flask db upgrade
+python deploy.py
 
 echo "Build completed successfully!"
