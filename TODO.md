@@ -29,9 +29,9 @@ This document outlines the plan for refactoring the `nalewka` project to improve
 - [x] **5. Improve Configuration Management:**
     - [x] Refactor `config.py` to use `pydantic` for settings management.
 
-- [ ] **6. Enforce Static Typing:**
-    - [ ] Add type hints throughout the codebase.
-    - [ ] Use `mypy` to enforce static typing.
+- [x] **6. Enforce Static Typing:**
+    - [x] Add type hints throughout the codebase.
+    - [x] Use `mypy` to enforce static typing.
 
 ---
 
