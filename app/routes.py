@@ -1,4 +1,5 @@
 from functools import wraps
+from typing import Any, Callable
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
@@ -34,7 +35,7 @@ main_bp = Blueprint("main", __name__)
 # For simplicity, we'll assume they are registered in the app factory.
 
 
-def handle_db_errors(f):
+def handle_db_errors(f: Callable) -> Callable:
     """Decorator to handle database errors consistently"""
 
     @wraps(f)
@@ -49,14 +50,14 @@ def handle_db_errors(f):
     return decorated_function
 
 
-def user_owns_liquor(liquor_id, user_id):
+def user_owns_liquor(liquor_id: int, user_id: int) -> bool:
     """Helper function remains useful for checks before rendering a form."""
     return liquor_repository.user_owns_liquor(liquor_id, user_id)
 
 
 @main_bp.route("/")
 @main_bp.route("/index")
-def index():
+def index() -> Any:
     liquors = []
     if current_user.is_authenticated:
         try:
@@ -67,47 +68,54 @@ def index():
 
 
 @main_bp.route("/login", methods=["GET", "POST"])
-def login():
+def login() -> Any:
     if current_user.is_authenticated:
         return redirect(url_for("main.index"))
     form = LoginForm()
     if form.validate_on_submit():
-        user = user_repository.get_by_username(form.username.data)
-        if user is None or not user.check_password(form.password.data):
-            flash("Invalid username or password", "error")
-            return redirect(url_for("main.login"))
-        login_user(user, remember=form.remember_me.data)
-        next_page = request.args.get("next")
-        if not next_page or not next_page.startswith("/"):
-            next_page = url_for("main.index")
-        flash(f"Welcome back, {user.username}!", "success")
-        return redirect(next_page)
+        username = form.username.data
+        password = form.password.data
+        if username and password:
+            user = user_repository.get_by_username(username)
+            if user is None or not user.check_password(password):
+                flash("Invalid username or password", "error")
+                return redirect(url_for("main.login"))
+            login_user(user, remember=form.remember_me.data)
+            next_page = request.args.get("next")
+            if not next_page or not next_page.startswith("/"):
+                next_page = url_for("main.index")
+            flash(f"Welcome back, {user.username}!", "success")
+            return redirect(next_page)
     return render_template("login.html", title="Sign In", form=form)
 
 
 @main_bp.route("/register", methods=["GET", "POST"])
-def register():
+def register() -> Any:
     # This route remains largely the same, but DB interactions could also be moved.
     if current_user.is_authenticated:
         return redirect(url_for("main.index"))
     form = RegistrationForm(user_repository=user_repository)
     if form.validate_on_submit():
-        try:
-            user = User(username=form.username.data, email=form.email.data)
-            user.set_password(form.password.data)
-            user_repository.add(user)
-            user_repository.commit()
-            flash("Registration successful! Please log in.", "success")
-            return redirect(url_for("main.login"))
-        except Exception:
-            user_repository.rollback()
-            flash("Registration failed. Please try again.", "error")
+        username = form.username.data
+        email = form.email.data
+        password = form.password.data
+        if username and email and password:
+            try:
+                user = User(username=username, email=email)
+                user.set_password(password)
+                user_repository.add(user)
+                user_repository.commit()
+                flash("Registration successful! Please log in.", "success")
+                return redirect(url_for("main.login"))
+            except Exception:
+                user_repository.rollback()
+                flash("Registration failed. Please try again.", "error")
     return render_template("register.html", title="Register", form=form)
 
 
 @main_bp.route("/logout")
 @login_required
-def logout():
+def logout() -> Any:
     logout_user()
     flash("You've been logged out.", "info")
     return redirect(url_for("main.index"))
@@ -116,7 +124,7 @@ def logout():
 @main_bp.route("/create_liquor", methods=["GET", "POST"])
 @login_required
 @handle_db_errors
-def create_liquor():
+def create_liquor() -> Any:
     # This route is simple enough to leave as is for now.
     form = LiquorForm()
     if form.validate_on_submit():
@@ -135,7 +143,7 @@ def create_liquor():
 # === REFACTORED ROUTE ===
 @main_bp.route("/batch_formula", methods=["GET", "POST"])
 @login_required
-def batch_formula():
+def batch_formula() -> Any:
     form = BatchFormulaForm(
         liquor_repository=liquor_repository,
         ingredient_repository=ingredient_repository,
@@ -156,16 +164,17 @@ def batch_formula():
         if error:
             flash(f"Error creating batch: {error}", "error")
         else:
-            flash(
-                (
-                    "Batch formula created successfully with "
-                    f"{len(new_batch.formulas)} ingredients!"
-                ),
-                "success",
-            )
-            return redirect(
-                url_for("main.liquor_batches", liquor_id=new_batch.liquor_id)
-            )
+            if new_batch is not None:
+                flash(
+                    (
+                        "Batch formula created successfully with "
+                        f"{len(new_batch.formulas)} ingredients!"
+                    ),
+                    "success",
+                )
+                return redirect(
+                    url_for("main.liquor_batches", liquor_id=new_batch.liquor_id)
+                )
 
     return render_template("batch_formula.html", form=form)
 
@@ -173,7 +182,7 @@ def batch_formula():
 @main_bp.route("/liquor/<int:liquor_id>/batches")
 @login_required
 @handle_db_errors
-def liquor_batches(liquor_id):
+def liquor_batches(liquor_id: int) -> Any:
     liquor = liquor_repository.get(liquor_id)
     if not liquor or liquor.user_id != current_user.id:
         flash("Liquor not found or access denied.", "error")
@@ -186,7 +195,7 @@ def liquor_batches(liquor_id):
 # === REFACTORED ROUTE ===
 @main_bp.route("/batch/<int:batch_id>/edit_bottles", methods=["GET", "POST"])
 @login_required
-def edit_batch_bottles(batch_id):
+def edit_batch_bottles(batch_id: int) -> Any:
     batch = batch_repository.get(batch_id)
     if not batch:
         flash("Batch not found.", "error")
@@ -206,10 +215,11 @@ def edit_batch_bottles(batch_id):
         if error:
             flash(f"Error updating bottle information: {error}", "error")
         else:
-            flash("Bottle information updated successfully!", "success")
-            return redirect(
-                url_for("main.liquor_batches", liquor_id=updated_batch.liquor_id)
-            )
+            if updated_batch is not None:
+                flash("Bottle information updated successfully!", "success")
+                return redirect(
+                    url_for("main.liquor_batches", liquor_id=updated_batch.liquor_id)
+                )
 
     # Pre-populate form on GET request for better user experience
     if request.method == "GET":
@@ -224,7 +234,7 @@ def edit_batch_bottles(batch_id):
 @main_bp.route("/batch/<int:batch_id>/details")
 @login_required
 @handle_db_errors
-def batch_details(batch_id):
+def batch_details(batch_id: int) -> Any:
     batch = batch_repository.get(batch_id)
     if not batch or batch.liquor.user_id != current_user.id:
         flash("Batch or permission not found.", "error")

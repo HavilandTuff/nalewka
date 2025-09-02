@@ -80,4 +80,4 @@ class Settings(BaseSettings):
 
 
 # Instantiate settings to be imported by the application
-settings = Settings()
+settings = Settings()  # type: ignore

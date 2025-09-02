@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, TypeAlias
 
 import sqlalchemy as sa
 import sqlalchemy.orm as so
@@ -9,8 +9,10 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app import db, login
 from app.utils import VolumeConverter
 
+BaseModel: TypeAlias = db.Model
 
-class User(UserMixin, db.Model):
+
+class User(UserMixin, BaseModel):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
     email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
@@ -21,21 +23,21 @@ class User(UserMixin, db.Model):
 
     liquors: so.Mapped[list["Liquor"]] = so.relationship(back_populates="user")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<User {self.username}>"
 
-    def set_password(self, password):
+    def set_password(self, password: str) -> None:
         if len(password) < 6:
             raise ValueError("Password must be at least 6 characters long")
         self.password_hash = generate_password_hash(password)
 
-    def check_password(self, password):
+    def check_password(self, password: str) -> bool:
         if not self.password_hash:
             return False
         return check_password_hash(self.password_hash, password)
 
 
-class Liquor(db.Model):
+class Liquor(BaseModel):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(128), index=True)
     created: so.Mapped[datetime] = so.mapped_column(
@@ -49,31 +51,31 @@ class Liquor(db.Model):
         back_populates="liquor", cascade="all, delete-orphan"
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Liquor {self.name}>"
 
     @property
-    def batch_count(self):
+    def batch_count(self) -> int:
         """Return the number of batches for this liquor"""
         return len(self.batches)
 
     @property
-    def total_bottles_produced(self):
+    def total_bottles_produced(self) -> int:
         """Calculate total bottles produced across all batches"""
         return sum(batch.bottle_count or 0 for batch in self.batches)
 
     @property
-    def total_volume_produced(self):
+    def total_volume_produced(self) -> float:
         """Calculate total volume produced in milliliters"""
         return sum(batch.total_volume for batch in self.batches)
 
 
 @login.user_loader
-def load_user(id):
+def load_user(id: int) -> Optional["User"]:
     return db.session.get(User, int(id))
 
 
-class Ingredient(db.Model):
+class Ingredient(BaseModel):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(128), index=True, unique=True)
     description: so.Mapped[Optional[str]] = so.mapped_column(sa.Text())
@@ -86,16 +88,16 @@ class Ingredient(db.Model):
         back_populates="ingredient"
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Ingredient {self.name}>"
 
     @property
-    def usage_count(self):
+    def usage_count(self) -> int:
         """Return how many batches use this ingredient"""
         return len(self.batch_formulas)
 
 
-class Batch(db.Model):
+class Batch(BaseModel):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     date: so.Mapped[datetime] = so.mapped_column(
         index=True, default=lambda: datetime.now(timezone.utc)
@@ -118,10 +120,10 @@ class Batch(db.Model):
     # Add composite index for better query performance
     __table_args__ = (db.Index("idx_batch_liquor_date", "liquor_id", "date"),)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Batch {self.id} - {self.description[:50]}...>"
 
-    def validate_bottle_data(self):
+    def validate_bottle_data(self) -> None:
         """Validate bottle count and volume are consistent"""
         if self.bottle_count is not None and self.bottle_count < 0:
             raise ValueError("Bottle count cannot be negative")
@@ -129,29 +131,29 @@ class Batch(db.Model):
             raise ValueError("Bottle volume cannot be negative")
 
     @property
-    def total_volume(self):
+    def total_volume(self) -> float:
         """Calculate total volume in milliliters."""
         if self.bottle_count and self.bottle_volume:
             return self.bottle_count * self.bottle_volume
         return 0.0
 
     @property
-    def total_volume_liters(self):
+    def total_volume_liters(self) -> float:
         """Calculate total volume in liters."""
         return self.total_volume / 1000.0
 
     @property
-    def ingredient_count(self):
+    def ingredient_count(self) -> int:
         """Return the number of ingredients in this batch"""
         return len(self.formulas)
 
-    def get_volume_in_unit(self, unit="ml"):
+    def get_volume_in_unit(self, unit: str = "ml") -> float:
         """Get total volume in specified unit"""
         total_ml = self.total_volume
         return VolumeConverter.from_ml(total_ml, unit)
 
 
-class BatchFormula(db.Model):
+class BatchFormula(BaseModel):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     batch_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Batch.id), index=True)
     ingredient_id: so.Mapped[int] = so.mapped_column(
@@ -163,15 +165,15 @@ class BatchFormula(db.Model):
     batch: so.Mapped[Batch] = so.relationship(back_populates="formulas")
     ingredient: so.Mapped[Ingredient] = so.relationship(back_populates="batch_formulas")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<BatchFormula {self.ingredient.name}: {self.quantity} {self.unit}>"
 
-    def validate_quantity(self):
+    def validate_quantity(self) -> None:
         """Validate that quantity is positive"""
         if self.quantity <= 0:
             raise ValueError("Quantity must be greater than 0")
 
-    def get_quantity_in_unit(self, target_unit):
+    def get_quantity_in_unit(self, target_unit: str) -> float:
         """Convert quantity to target unit (for volume units)"""
         if self.unit in ["ml", "l", "oz", "cup", "tsp", "tbsp"] and target_unit in [
             "ml",

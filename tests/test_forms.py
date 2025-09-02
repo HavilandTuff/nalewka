@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 import pytest
 import sqlalchemy as sa
 from werkzeug.datastructures import MultiDict
@@ -17,7 +19,7 @@ from app.repositories import (
 
 
 @pytest.fixture
-def form_test_data(session):
+def form_test_data(session: Any) -> Dict[str, Any]:
     """Fixture to create and commit necessary data for form tests."""
     user = session.scalar(sa.select(User).where(User.username == "formtester"))
     if not user:
@@ -49,7 +51,9 @@ def form_test_data(session):
     return {"user": user, "liquor": liquor, "ingredients": [ingredient1, ingredient2]}
 
 
-def test_batch_formula_form_valid_data(app, form_test_data):
+def test_batch_formula_form_valid_data(
+    app: Any, form_test_data: Dict[str, Any]
+) -> None:
     """
     GIVEN a user, liquors, and ingredients in the database
     WHEN BatchFormulaForm is instantiated with valid POST data
@@ -99,7 +103,9 @@ def test_batch_formula_form_valid_data(app, form_test_data):
         assert not form.errors
 
 
-def test_batch_formula_form_missing_required_fields(app, form_test_data):
+def test_batch_formula_form_missing_required_fields(
+    app: Any, form_test_data: Dict[str, Any]
+) -> None:
     """
     GIVEN a user and liquors in the database
     WHEN BatchFormulaForm is instantiated with missing required data
@@ -134,7 +140,9 @@ def test_batch_formula_form_missing_required_fields(app, form_test_data):
         assert "ingredients" in form.errors
 
 
-def test_batch_formula_form_invalid_quantity(app, form_test_data):
+def test_batch_formula_form_invalid_quantity(
+    app: Any, form_test_data: Dict[str, Any]
+) -> None:
     """
     GIVEN a user and liquors in the database
     WHEN BatchFormulaForm is instantiated with an invalid ingredient quantity
@@ -162,7 +170,9 @@ def test_batch_formula_form_invalid_quantity(app, form_test_data):
         )
 
 
-def test_batch_formula_form_no_ingredients(app, form_test_data):
+def test_batch_formula_form_no_ingredients(
+    app: Any, form_test_data: Dict[str, Any]
+) -> None:
     """
     GIVEN a user and liquors in the database
     WHEN BatchFormulaForm is instantiated with no ingredients
@@ -199,7 +209,7 @@ def test_batch_formula_form_no_ingredients(app, form_test_data):
         assert "ingredients" in form.errors
 
 
-def test_registration_form_valid_data(app):
+def test_registration_form_valid_data(app: Any) -> None:
     """
     GIVEN a Flask application
     WHEN a RegistrationForm is submitted with valid, unique data
@@ -218,7 +228,9 @@ def test_registration_form_valid_data(app):
         assert form.validate() is True
 
 
-def test_registration_form_duplicate_username(app, form_test_data):
+def test_registration_form_duplicate_username(
+    app: Any, form_test_data: Dict[str, Any]
+) -> None:
     """
     GIVEN a user already exists in the database
     WHEN a RegistrationForm is submitted with the same username
@@ -240,7 +252,9 @@ def test_registration_form_duplicate_username(app, form_test_data):
         assert "Username already exists" in form.errors["username"][0]
 
 
-def test_registration_form_duplicate_email(app, form_test_data):
+def test_registration_form_duplicate_email(
+    app: Any, form_test_data: Dict[str, Any]
+) -> None:
     """
     GIVEN a user already exists in the database
     WHEN a RegistrationForm is submitted with the same email
@@ -262,7 +276,7 @@ def test_registration_form_duplicate_email(app, form_test_data):
         assert "Email already registered" in form.errors["email"][0]
 
 
-def test_liquor_form_valid(app):
+def test_liquor_form_valid(app: Any) -> None:
     """
     GIVEN a Flask application
     WHEN a LiquorForm is submitted with valid data
@@ -274,7 +288,7 @@ def test_liquor_form_valid(app):
         assert not form.errors
 
 
-def test_edit_bottles_form_invalid_range(app):
+def test_edit_bottles_form_invalid_range(app: Any) -> None:
     """
     GIVEN a Flask application
     WHEN an EditBottlesForm is submitted with out-of-range data

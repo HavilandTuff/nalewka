@@ -1,4 +1,7 @@
-def test_index_page_loads(client):
+from typing import Any
+
+
+def test_index_page_loads(client: Any) -> None:
     """
     GIVEN a Flask application configured for testing
     WHEN the '/' page is requested (GET)
@@ -9,7 +12,7 @@ def test_index_page_loads(client):
     assert b"Welcome to Nalewka" in response.data  # For logged-out user
 
 
-def test_404_page(client):
+def test_404_page(client: Any) -> None:
     """
     GIVEN a Flask application configured for testing
     WHEN a non-existent page is requested (GET)

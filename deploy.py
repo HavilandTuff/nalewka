@@ -4,12 +4,13 @@ Deployment script for Render.
 This script initializes the database and creates sample data.
 """
 import sys
+from typing import List
 
 from app import app, db
 from app.models import Batch, BatchFormula, Ingredient, Liquor, User
 
 
-def init_database():
+def init_database() -> None:
     """Initialize the database tables."""
     print("Creating database tables...")
     with app.app_context():
@@ -17,7 +18,7 @@ def init_database():
         print("✅ Database tables created successfully!")
 
 
-def create_sample_data():
+def create_sample_data() -> None:
     """Create sample data for the application."""
     print("Creating sample data...")
 
@@ -35,7 +36,7 @@ def create_sample_data():
         db.session.flush()
 
         # Create sample liquors
-        liquors = [
+        liquors: List[Liquor] = [
             Liquor(
                 name="Wiśniówka",
                 description=(
@@ -61,7 +62,7 @@ def create_sample_data():
         db.session.flush()
 
         # Create sample ingredients
-        ingredients = [
+        ingredients: List[Ingredient] = [
             Ingredient(
                 name="Cherries", description="Fresh cherries for liqueur making"
             ),
@@ -89,7 +90,7 @@ def create_sample_data():
         db.session.flush()
 
         # Create sample batch formulas
-        formulas = [
+        formulas: List[BatchFormula] = [
             BatchFormula(
                 batch_id=batch.id,
                 ingredient_id=ingredients[0].id,

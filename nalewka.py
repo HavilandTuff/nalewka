@@ -1,3 +1,5 @@
+from typing import Any, Dict, List
+
 import click
 from dotenv import load_dotenv
 
@@ -13,7 +15,7 @@ app = create_app()
 # ----------------------------------------------------------------
 # MOVED FROM manage.py - This is the seeding function
 # ----------------------------------------------------------------
-def create_sample_data():
+def create_sample_data() -> None:
     """Create sample data for testing."""
     print("Creating sample data...")
 
@@ -24,7 +26,7 @@ def create_sample_data():
     db.session.flush()
 
     # Create sample liquors
-    liquors_data = [
+    liquors_data: List[Dict[str, str]] = [
         {"name": "Wiśniówka", "description": "Traditional Polish cherry liqueur"},
         {"name": "Cytrynówka", "description": "Refreshing lemon liqueur"},
         {"name": "Nalewka z Malin", "description": "Sweet raspberry liqueur"},
@@ -34,7 +36,7 @@ def create_sample_data():
     db.session.flush()
 
     # Create sample ingredients
-    ingredients_data = [
+    ingredients_data: List[Dict[str, str]] = [
         {"name": "Cherries", "description": "Fresh cherries"},
         {"name": "Lemons", "description": "Fresh lemons"},
         {"name": "Raspberries", "description": "Fresh raspberries"},
@@ -47,7 +49,7 @@ def create_sample_data():
     db.session.flush()
 
     # Create sample batches
-    batches_data = [
+    batches_data: List[Dict[str, Any]] = [
         {"description": "First batch of Wiśniówka", "liquor_id": liquors[0].id},
         {"description": "Summer batch of Cytrynówka", "liquor_id": liquors[1].id},
     ]
@@ -107,7 +109,7 @@ def create_sample_data():
 
 # --- Flask Shell Context ---
 @app.shell_context_processor
-def make_shell_context():
+def make_shell_context() -> Dict[str, Any]:
     return {
         "db": db,
         "User": User,
@@ -120,7 +122,7 @@ def make_shell_context():
 
 # --- Flask CLI Commands ---
 @app.cli.command("init-db")
-def init_db_command():
+def init_db_command() -> None:
     """Initialize the database."""
     with app.app_context():
         db.create_all()
@@ -131,7 +133,7 @@ def init_db_command():
 @click.confirmation_option(
     prompt="Are you sure you want to reset the database? This will delete all data."
 )
-def reset_db_command():
+def reset_db_command() -> None:
     """Reset the database (drops all tables and recreates them)."""
     with app.app_context():
         db.drop_all()
@@ -140,7 +142,7 @@ def reset_db_command():
 
 
 @app.cli.command("seed-data")
-def seed_data_command():
+def seed_data_command() -> None:
     """Populate the database with sample data."""
     with app.app_context():
         # This now calls the function defined inside this file

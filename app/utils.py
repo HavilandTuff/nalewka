@@ -2,7 +2,7 @@ class VolumeConverter:
     """Utility class for volume conversions"""
 
     @staticmethod
-    def to_ml(value, unit):
+    def to_ml(value: float, unit: str) -> float:
         """Convert any volume unit to milliliters"""
         if unit == "l":
             return value * 1000
@@ -17,7 +17,7 @@ class VolumeConverter:
         return value  # assume ml if unknown
 
     @staticmethod
-    def from_ml(value_ml, target_unit):
+    def from_ml(value_ml: float, target_unit: str) -> float:
         """Convert milliliters to target unit"""
         if target_unit == "l":
             return value_ml / 1000

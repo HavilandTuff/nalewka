@@ -1,7 +1,9 @@
+from typing import Any
+
 from app.models import User
 
 
-def test_new_user_password_hashing(session):
+def test_new_user_password_hashing(session: Any) -> None:
     """
     GIVEN a User model
     WHEN a new User is created

@@ -1,4 +1,5 @@
 import subprocess
+from typing import Any, Dict, Optional
 
 from flask import Flask, render_template
 from flask_login import LoginManager
@@ -8,14 +9,14 @@ from flask_sqlalchemy import SQLAlchemy
 from config import settings
 
 # Extensions are initialized here but not attached to an app
-db = SQLAlchemy()
-migrate = Migrate()
-login = LoginManager()
+db: SQLAlchemy = SQLAlchemy()
+migrate: Migrate = Migrate()
+login: LoginManager = LoginManager()
 login.login_view = "login"
 login.login_message = "Please log in to access this page."
 
 
-def get_git_commit_hash():
+def get_git_commit_hash() -> Optional[str]:
     """Function to get the short git commit hash."""
     try:
         # Run the git command to get the short hash
@@ -32,9 +33,10 @@ def get_git_commit_hash():
         return None
 
 
-def create_app():
-    app = Flask(__name__)
-    for key, value in settings.model_dump().items():
+def create_app() -> Flask:
+    app: Flask = Flask(__name__)
+    config_dict: Dict[str, Any] = settings.model_dump()
+    for key, value in config_dict.items():
         app.config[key] = value
 
     app.config["GIT_COMMIT_HASH"] = get_git_commit_hash()
@@ -52,17 +54,17 @@ def create_app():
 
     # Register error handlers on the app
     @app.errorhandler(404)
-    def not_found_error(error):
+    def not_found_error(error: Any) -> Any:
         return render_template("404.html"), 404
 
     @app.errorhandler(500)
-    def internal_error(error):
+    def internal_error(error: Any) -> Any:
         db.session.rollback()
         return render_template("500.html"), 500
 
     @app.context_processor
-    def inject_git_hash():
+    def inject_git_hash() -> Dict[str, str]:
         """Injects the git commit hash into all templates."""
-        return dict(git_commit_hash=app.config["GIT_COMMIT_HASH"])
+        return dict(git_commit_hash=app.config["GIT_COMMIT_HASH"])  # type: ignore
 
     return app

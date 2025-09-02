@@ -1,3 +1,5 @@
+from typing import Any, List, Optional, Tuple
+
 from flask_wtf import FlaskForm
 from wtforms import (
     BooleanField,
@@ -50,17 +52,17 @@ class RegistrationForm(FlaskForm):
     )
     submit = SubmitField("Register")
 
-    def __init__(self, *args, user_repository, **kwargs):
+    def __init__(self, *args: Any, user_repository: Any, **kwargs: Any) -> None:
         super(RegistrationForm, self).__init__(*args, **kwargs)
         self.user_repository = user_repository
 
-    def validate_username(self, username):
+    def validate_username(self, username: Any) -> None:
         if self.user_repository.get_by_username(username.data):
             raise ValidationError(
                 "Username already exists. Please choose a different one."
             )
 
-    def validate_email(self, email):
+    def validate_email(self, email: Any) -> None:
         if self.user_repository.get_by_email(email.data):
             raise ValidationError(
                 "Email already registered. Please use a different email."
@@ -78,10 +80,16 @@ class LiquorForm(FlaskForm):
 class IngredientEntryForm(Form):
     ingredient = SelectField("Ingredient", coerce=int, validators=[DataRequired()])
 
-    def __init__(self, *args, ingredient_choices=None, **kwargs):
+    def __init__(
+        self,
+        *args: Any,
+        ingredient_choices: Optional[List[Tuple[int, str]]] = None,
+        **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
         if ingredient_choices:
-            self.ingredient.choices = ingredient_choices
+            # Type ignore because of complex type inference
+            self.ingredient.choices = ingredient_choices  # type: ignore
 
     quantity = FloatField(
         "Quantity",
@@ -140,7 +148,13 @@ class BatchFormulaForm(FlaskForm):
 
     submit = SubmitField("Create Batch")
 
-    def __init__(self, *args, liquor_repository, ingredient_repository, **kwargs):
+    def __init__(
+        self,
+        *args: Any,
+        liquor_repository: Any,
+        ingredient_repository: Any,
+        **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
         user_id = kwargs.get("user_id")
         self.liquor.choices = [
@@ -151,7 +165,11 @@ class BatchFormulaForm(FlaskForm):
             (ingredient.id, ingredient.name)
             for ingredient in ingredient_repository.get_all()
         ]
-        self.ingredients.form_kwargs = {"ingredient_choices": ingredient_choices}
+        # This is a workaround for the type checking issue
+        # The form_kwargs attribute exists but mypy doesn't recognize it
+        setattr(
+            self.ingredients, "form_kwargs", {"ingredient_choices": ingredient_choices}
+        )
 
 
 class EditBottlesForm(FlaskForm):

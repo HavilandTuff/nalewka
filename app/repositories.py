@@ -1,39 +1,45 @@
+from typing import List, Optional, Tuple, Type, TypeVar, cast
+
 import sqlalchemy as sa
 
 from app import db
 from app.models import Batch, BatchFormula, Ingredient, Liquor, User
 
+T = TypeVar("T")
+
 
 class BaseRepository:
-    def __init__(self, model):
+    def __init__(self, model: Type[T]) -> None:
         self.model = model
 
-    def get(self, model_id):
-        return db.session.get(self.model, model_id)
+    def get(self, model_id: int) -> Optional[T]:
+        result = db.session.get(self.model, model_id)
+        return cast(Optional[T], result)
 
-    def add(self, entity):
+    def add(self, entity: T) -> None:
         db.session.add(entity)
 
-    def commit(self):
+    def commit(self) -> None:
         db.session.commit()
 
-    def rollback(self):
+    def rollback(self) -> None:
         db.session.rollback()
 
-    def flush(self):
+    def flush(self) -> None:
         db.session.flush()
 
 
 class LiquorRepository(BaseRepository):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(Liquor)
 
-    def get_all_for_user(self, user_id):
-        return db.session.scalars(
+    def get_all_for_user(self, user_id: int) -> List[Liquor]:
+        result = db.session.scalars(
             db.select(Liquor).where(Liquor.user_id == user_id)
         ).all()
+        return list(result)
 
-    def user_owns_liquor(self, liquor_id, user_id):
+    def user_owns_liquor(self, liquor_id: int, user_id: int) -> bool:
         return (
             db.session.query(Liquor.id).filter_by(id=liquor_id, user_id=user_id).first()
             is not None
@@ -41,17 +47,20 @@ class LiquorRepository(BaseRepository):
 
 
 class BatchRepository(BaseRepository):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(Batch)
 
-    def get_all_for_liquor(self, liquor_id):
-        return db.session.scalars(
+    def get_all_for_liquor(self, liquor_id: int) -> List[Batch]:
+        result = db.session.scalars(
             db.select(Batch)
             .where(Batch.liquor_id == liquor_id)
             .order_by(Batch.date.desc())
         ).all()
+        return list(result)
 
-    def create_with_formulas(self, batch_data, formulas_data):
+    def create_with_formulas(
+        self, batch_data: dict, formulas_data: List[dict]
+    ) -> Tuple[Optional[Batch], Optional[str]]:
         try:
             batch = Batch(**batch_data)
             batch.validate_bottle_data()
@@ -70,19 +79,22 @@ class BatchRepository(BaseRepository):
 
 
 class UserRepository(BaseRepository):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(User)
 
-    def get_by_username(self, username):
-        return db.session.scalar(db.select(User).where(User.username == username))
+    def get_by_username(self, username: str) -> Optional[User]:
+        result = db.session.scalar(db.select(User).where(User.username == username))
+        return cast(Optional[User], result)
 
-    def get_by_email(self, email):
-        return db.session.scalar(db.select(User).where(User.email == email))
+    def get_by_email(self, email: str) -> Optional[User]:
+        result = db.session.scalar(db.select(User).where(User.email == email))
+        return cast(Optional[User], result)
 
 
 class IngredientRepository(BaseRepository):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(Ingredient)
 
-    def get_all(self):
-        return db.session.scalars(sa.select(Ingredient)).all()
+    def get_all(self) -> List[Ingredient]:
+        result = db.session.scalars(sa.select(Ingredient)).all()
+        return list(result)
