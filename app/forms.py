@@ -88,8 +88,9 @@ class IngredientEntryForm(Form):
     ) -> None:
         super().__init__(*args, **kwargs)
         if ingredient_choices:
-            # Type ignore because of complex type inference
-            self.ingredient.choices = ingredient_choices  # type: ignore
+            self.ingredient.choices = ingredient_choices
+        else:
+            self.ingredient.choices = []
 
     quantity = FloatField(
         "Quantity",
@@ -165,11 +166,8 @@ class BatchFormulaForm(FlaskForm):
             (ingredient.id, ingredient.name)
             for ingredient in ingredient_repository.get_all()
         ]
-        # This is a workaround for the type checking issue
-        # The form_kwargs attribute exists but mypy doesn't recognize it
-        setattr(
-            self.ingredients, "form_kwargs", {"ingredient_choices": ingredient_choices}
-        )
+        for entry in self.ingredients:
+            entry.form.ingredient.choices = ingredient_choices
 
 
 class EditBottlesForm(FlaskForm):
@@ -191,3 +189,11 @@ class EditBottlesForm(FlaskForm):
         "Volume Unit", choices=[("ml", "Milliliters"), ("l", "Liters")], default="ml"
     )
     submit = SubmitField("Update Bottles")
+
+
+class IngredientForm(FlaskForm):
+    name = StringField(
+        "Ingredient Name", validators=[DataRequired(), Length(min=2, max=128)]
+    )
+    description = TextAreaField("Description", validators=[Length(max=1000)])
+    submit = SubmitField("Add Ingredient")

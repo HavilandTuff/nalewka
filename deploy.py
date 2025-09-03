@@ -3,16 +3,22 @@
 Deployment script for Render.
 This script initializes the database and creates sample data.
 """
+import os
 import sys
 from typing import List
 
-from app import app, db
+# Ensure we're using the correct path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from app import create_app, db
 from app.models import Batch, BatchFormula, Ingredient, Liquor, User
 
 
 def init_database() -> None:
     """Initialize the database tables."""
     print("Creating database tables...")
+    # Create app with proper configuration
+    app = create_app()
     with app.app_context():
         # Use Flask-Migrate to create tables
         from flask_migrate import upgrade
@@ -25,6 +31,8 @@ def create_sample_data() -> None:
     """Create sample data for the application."""
     print("Creating sample data...")
 
+    # Create app with proper configuration
+    app = create_app()
     with app.app_context():
         # Check if admin user already exists
         admin_user = User.query.filter_by(username="admin").first()

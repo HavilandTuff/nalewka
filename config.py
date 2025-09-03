@@ -1,3 +1,5 @@
+import os
+
 from pydantic import EmailStr, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,9 +17,11 @@ class Settings(BaseSettings):
         min_length=16,
         description="Secret key for session management and security.",
     )
+
+    # Database configuration - use environment-specific defaults
     SQLALCHEMY_DATABASE_URI: str = Field(
-        "sqlite:///site.db",
-        pattern=r"^sqlite:///.*\.db$|^postgresql\+psycopg2://.*$",
+        default_factory=lambda: _get_database_uri(),
+        pattern=r"^sqlite://.*\.db$|^postgresql\+psycopg2://.*$|^sqlite:///:memory:$",
         description="Database connection URI. Supports SQLite and PostgreSQL.",
     )
 
@@ -78,6 +82,21 @@ class Settings(BaseSettings):
         True,
         description="Enable CSRF protection for forms.",
     )
+
+
+def _get_database_uri() -> str:
+    """Get the appropriate database URI based on the environment."""
+    # Check if we're running tests
+    if os.environ.get("TESTING") == "1":
+        return "sqlite:///:memory:"
+
+    # Check if we're in production (Render)
+    if os.environ.get("RENDER") == "true":
+        # Use PostgreSQL in production
+        return os.environ.get("DATABASE_URL", "sqlite:///site.db")
+
+    # Default to local SQLite database in instance folder
+    return "sqlite:///site.db"
 
 
 # Instantiate settings to be imported by the application

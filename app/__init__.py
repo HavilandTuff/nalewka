@@ -1,3 +1,4 @@
+import os
 import subprocess
 from typing import Any, Dict, Optional
 
@@ -13,7 +14,7 @@ from config import settings
 db: SQLAlchemy = SQLAlchemy()
 migrate: Migrate = Migrate()
 login: LoginManager = LoginManager()
-login.login_view = "login"
+login.login_view = "main.login"
 login.login_message = "Please log in to access this page."
 csrf = CSRFProtect()
 
@@ -35,11 +36,24 @@ def get_git_commit_hash() -> Optional[str]:
         return None
 
 
-def create_app() -> Flask:
-    app: Flask = Flask(__name__)
-    config_dict: Dict[str, Any] = settings.model_dump()
-    for key, value in config_dict.items():
-        app.config[key] = value
+def create_app(config_override: Optional[Dict[str, Any]] = None) -> Flask:
+    # Set instance path to ensure database files are in the right location
+    instance_path = os.path.join(
+        os.path.abspath(os.path.dirname(__file__)), "..", "instance"
+    )
+
+    app: Flask = Flask(
+        __name__, instance_path=instance_path, instance_relative_config=True
+    )
+
+    # Load configuration
+    if config_override:
+        for key, value in config_override.items():
+            app.config[key] = value
+    else:
+        config_dict: Dict[str, Any] = settings.model_dump()
+        for key, value in config_dict.items():
+            app.config[key] = value
 
     app.config["GIT_COMMIT_HASH"] = get_git_commit_hash()
     if app.config["GIT_COMMIT_HASH"] is None:

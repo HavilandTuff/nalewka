@@ -8,7 +8,7 @@ from app.models import Batch, BatchFormula, Ingredient, Liquor, User
 
 load_dotenv()
 
-# Create the application instance using the factory
+# Create the application instance using the factory with proper instance path
 app = create_app()
 
 

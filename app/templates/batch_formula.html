@@ -8,7 +8,7 @@
                 <p class="text-muted">Add a new batch with ingredients and measurements</p>
             </div>
 
-            <form method="POST">
+            <form method="POST" id="batch-form">
                 {{ form.hidden_tag() }}
 
                 <div class="row">
@@ -83,9 +83,14 @@
 
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h3 class="mb-0"><i class="bi bi-list-ul"></i> Ingredients</h3>
-                    <button type="button" class="btn btn-outline-primary" id="add-ingredient">
-                        <i class="bi bi-plus-circle"></i> Add Ingredient
-                    </button>
+                    <div>
+                        <button type="button" class="btn btn-outline-success me-2" data-bs-toggle="modal" data-bs-target="#addIngredientModal">
+                            <i class="bi bi-plus-circle"></i> New Ingredient
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" id="add-ingredient">
+                            <i class="bi bi-plus-circle"></i> Add Ingredient
+                        </button>
+                    </div>
                 </div>
 
                 <div id="ingredients-container">
@@ -115,6 +120,35 @@
     {% include '_ingredient_entry.html' with context %}
 </template>
 
+<!-- Add Ingredient Modal -->
+<div class="modal fade" id="addIngredientModal" tabindex="-1" aria-labelledby="addIngredientModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addIngredientModalLabel">Add New Ingredient</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="add-ingredient-form">
+                    <div class="mb-3">
+                        <label for="ingredient-name" class="form-label">Ingredient Name</label>
+                        <input type="text" class="form-control" id="ingredient-name" required>
+                        <div class="invalid-feedback" id="ingredient-name-error"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="ingredient-description" class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" id="ingredient-description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save-ingredient">Add Ingredient</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('ingredients-container');
@@ -128,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const newEntry = clone.querySelector('.ingredient-entry');
 
         // Update names and IDs to have the correct index
-        newEntry.querySelectorAll('select, input').forEach(el => {
+        newEntry.querySelectorAll('select, input, hidden').forEach(el => {
             el.name = el.name.replace('__prefix__', ingredientCount);
             el.id = el.id.replace('__prefix__', ingredientCount);
         });
@@ -161,6 +195,107 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial check for remove buttons when the page loads
     updateRemoveButtons();
+
+    // Handle adding new ingredients via modal
+    const saveIngredientButton = document.getElementById('save-ingredient');
+    if (saveIngredientButton) {
+        saveIngredientButton.addEventListener('click', function() {
+            const nameInput = document.getElementById('ingredient-name');
+            const descriptionInput = document.getElementById('ingredient-description');
+            const name = nameInput.value.trim();
+
+            if (!name) {
+                document.getElementById('ingredient-name-error').textContent = 'Ingredient name is required';
+                nameInput.classList.add('is-invalid');
+                return;
+            }
+
+            // Get CSRF token from the form
+            let csrfToken = null;
+            const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
+            if (csrfTokenInput) {
+                csrfToken = csrfTokenInput.value;
+            } else {
+                // Fallback: Try to get from meta tag if available
+                const metaTag = document.querySelector('meta[name="csrf-token"]');
+                if (metaTag) {
+                    csrfToken = metaTag.getAttribute('content');
+                }
+            }
+
+            if (!csrfToken) {
+                console.error('CSRF token not found');
+                document.getElementById('ingredient-name-error').textContent = 'Form error. Please refresh the page and try again.';
+                nameInput.classList.add('is-invalid');
+                return;
+            }
+
+            // Send request to create new ingredient
+            fetch('/add_ingredient', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: new URLSearchParams({
+                    'name': name,
+                    'description': descriptionInput.value,
+                    'csrf_token': csrfToken
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add the new ingredient to all ingredient select dropdowns
+                    const ingredientSelects = document.querySelectorAll('select[name$="-ingredient"]');
+                    ingredientSelects.forEach(select => {
+                        const option = document.createElement('option');
+                        option.value = data.ingredient.id;
+                        option.textContent = data.ingredient.name;
+                        select.appendChild(option);
+                    });
+
+                    // Clear the form and close the modal
+                    document.getElementById('add-ingredient-form').reset();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addIngredientModal'));
+                    modal.hide();
+
+                    // Show success message
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                    alertDiv.role = 'alert';
+                    alertDiv.innerHTML = `
+                        Ingredient "${data.ingredient.name}" added successfully!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    document.querySelector('.form-container').prepend(alertDiv);
+                } else {
+                    // Show error message
+                    if (data.error) {
+                        document.getElementById('ingredient-name-error').textContent = data.error;
+                        nameInput.classList.add('is-invalid');
+                    } else if (data.errors) {
+                        // Handle form validation errors
+                        if (data.errors.name) {
+                            document.getElementById('ingredient-name-error').textContent = data.errors.name[0];
+                            nameInput.classList.add('is-invalid');
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('ingredient-name-error').textContent = 'An error occurred. Please try again.';
+                nameInput.classList.add('is-invalid');
+            });
+        });
+    }
+
+    // Clear validation errors when user types
+    document.getElementById('ingredient-name').addEventListener('input', function() {
+        this.classList.remove('is-invalid');
+        document.getElementById('ingredient-name-error').textContent = '';
+    });
 });
 </script>
 {% endblock %}

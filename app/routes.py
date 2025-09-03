@@ -1,27 +1,33 @@
 from functools import wraps
 from typing import Any, Callable
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import current_user, login_required, login_user, logout_user
 
 from app.forms import (
     BatchFormulaForm,
     EditBottlesForm,
+    IngredientForm,
     LiquorForm,
     LoginForm,
     RegistrationForm,
 )
-from app.models import Liquor, User
+from app.models import Ingredient, Liquor, User
 from app.repositories import (
     BatchRepository,
     IngredientRepository,
     LiquorRepository,
     UserRepository,
 )
-from app.services import (
-    create_batch_with_ingredients,
-    update_batch_bottles,
-)
+from app.services import create_batch_with_ingredients, update_batch_bottles
 
 user_repository = UserRepository()
 liquor_repository = LiquorRepository()
@@ -240,3 +246,38 @@ def batch_details(batch_id: int) -> Any:
         flash("Batch or permission not found.", "error")
         return redirect(url_for("main.index"))
     return render_template("batch_details.html", batch=batch)
+
+
+@main_bp.route("/add_ingredient", methods=["POST"])
+@login_required
+def add_ingredient() -> Any:
+    """API endpoint to add a new ingredient"""
+    form = IngredientForm()
+    if form.validate_on_submit():
+        # Check if ingredient already exists
+        existing_ingredient = ingredient_repository.get_by_name(form.name.data)
+        if existing_ingredient:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": "An ingredient with this name already exists.",
+                    }
+                ),
+                400,
+            )
+
+        ingredient = Ingredient(name=form.name.data, description=form.description.data)
+        ingredient_repository.add(ingredient)
+        ingredient_repository.commit()
+
+        # Return the new ingredient data
+        return jsonify(
+            {
+                "success": True,
+                "ingredient": {"id": ingredient.id, "name": ingredient.name},
+            }
+        )
+
+    # Return form errors
+    return jsonify({"success": False, "errors": form.errors}), 400

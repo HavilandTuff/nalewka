@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple, Type, TypeVar, cast
 
 import sqlalchemy as sa
+from sqlalchemy.orm import joinedload
 
 from app import db
 from app.models import Batch, BatchFormula, Ingredient, Liquor, User
@@ -50,6 +51,18 @@ class BatchRepository(BaseRepository):
     def __init__(self) -> None:
         super().__init__(Batch)
 
+    def get(self, model_id: int) -> Optional[Batch]:
+        result = (
+            db.session.query(Batch)
+            .options(
+                joinedload(Batch.formulas).joinedload(BatchFormula.ingredient),
+                joinedload(Batch.liquor),
+            )
+            .filter(Batch.id == model_id)
+            .first()
+        )
+        return cast(Optional[Batch], result)
+
     def get_all_for_liquor(self, liquor_id: int) -> List[Batch]:
         result = db.session.scalars(
             db.select(Batch)
@@ -98,3 +111,7 @@ class IngredientRepository(BaseRepository):
     def get_all(self) -> List[Ingredient]:
         result = db.session.scalars(sa.select(Ingredient)).all()
         return list(result)
+
+    def get_by_name(self, name: str) -> Optional[Ingredient]:
+        result = db.session.scalar(db.select(Ingredient).where(Ingredient.name == name))
+        return cast(Optional[Ingredient], result)
