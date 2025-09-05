@@ -120,6 +120,15 @@
     {% include '_ingredient_entry.html' with context %}
 </template>
 
+<!-- Store ingredient choices for JavaScript -->
+<script>
+    window.ingredientChoices = [
+        {% for value, label in form.ingredients[0].form.ingredient.choices %}
+            {value: {{ value }}, label: "{{ label }}"},
+        {% endfor %}
+    ];
+</script>
+
 <!-- Add Ingredient Modal -->
 <div class="modal fade" id="addIngredientModal" tabindex="-1" aria-labelledby="addIngredientModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -169,6 +178,21 @@ document.addEventListener('DOMContentLoaded', function() {
         newEntry.querySelectorAll('label').forEach(el => {
             el.htmlFor = el.htmlFor.replace('__prefix__', ingredientCount);
         });
+
+        // Populate the ingredient select dropdown with choices
+        const ingredientSelect = newEntry.querySelector('select[name$="-ingredient"]');
+        if (ingredientSelect && window.ingredientChoices) {
+            // Clear existing options
+            ingredientSelect.innerHTML = '';
+
+            // Add options from stored choices
+            window.ingredientChoices.forEach(choice => {
+                const option = document.createElement('option');
+                option.value = choice.value;
+                option.textContent = choice.label;
+                ingredientSelect.appendChild(option);
+            });
+        }
 
         container.appendChild(newEntry);
         ingredientCount++;
@@ -254,6 +278,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         option.textContent = data.ingredient.name;
                         select.appendChild(option);
                     });
+
+                    // Also add to the stored choices for future entries
+                    if (window.ingredientChoices) {
+                        window.ingredientChoices.push({
+                            value: data.ingredient.id,
+                            label: data.ingredient.name
+                        });
+                    }
 
                     // Clear the form and close the modal
                     document.getElementById('add-ingredient-form').reset();
