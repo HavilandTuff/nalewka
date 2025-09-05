@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Deployment script for Render.
-This script initializes the database and creates sample data.
+This script handles database migrations and optionally creates sample data.
 """
 import os
 import sys
@@ -16,29 +16,35 @@ from app.models import Batch, BatchFormula, Ingredient, Liquor, User
 
 def init_database() -> None:
     """Initialize the database tables."""
-    print("Creating database tables...")
+    print("Running database migrations...")
     # Create app with proper configuration
     app = create_app()
     with app.app_context():
-        # Use Flask-Migrate to create tables
+        # Use Flask-Migrate to run migrations
         from flask_migrate import upgrade
 
         upgrade()
-        print("✅ Database tables created successfully!")
+        print("✅ Database migrations completed successfully!")
 
 
-def create_sample_data() -> None:
-    """Create sample data for the application."""
-    print("Creating sample data...")
+def create_sample_data() -> bool:
+    """Create sample data for the application.
+
+    Returns:
+        bool: True if sample data was created, False if it was skipped.
+    """
+    print("Checking for existing data...")
 
     # Create app with proper configuration
     app = create_app()
     with app.app_context():
-        # Check if admin user already exists
-        admin_user = User.query.filter_by(username="admin").first()
-        if admin_user:
-            print("Admin user already exists, skipping sample data creation.")
-            return
+        # Check if any user already exists
+        existing_user = User.query.first()
+        if existing_user:
+            print("Existing data found, skipping sample data creation.")
+            return False
+
+        print("Creating sample data...")
 
         # Create admin user
         admin_user = User(username="admin", email="admin@example.com")
@@ -81,7 +87,7 @@ def create_sample_data() -> None:
                 name="Lemons", description="Fresh lemons with zest for citrus flavor"
             ),
             Ingredient(
-                name="Raspberries", description="Fresh raspberries for berry liqueurs"
+                name="Raspberries", description="Fresh raspberries for berry liquors"
             ),
             Ingredient(name="Sugar", description="Granulated sugar for sweetness"),
             Ingredient(name="Honey", description="Natural honey for complex sweetness"),
@@ -132,14 +138,27 @@ def create_sample_data() -> None:
             print(f"🍷 Created {len(liquors)} liquors")
             print(f"🥄 Created {len(ingredients)} ingredients")
             print(f"📦 Created 1 batch with {len(formulas)} formulas")
+            return True
         except Exception as e:
             db.session.rollback()
             print(f"❌ Error creating sample data: {e}")
+            return False
+
+
+def main() -> None:
+    """Main deployment function."""
+    init_database()
+
+    # Check if we should create sample data
+    if len(sys.argv) > 1 and sys.argv[1] == "--sample":
+        create_sample_data()
+    elif len(sys.argv) > 1 and sys.argv[1] == "--force-sample":
+        # Force creation of sample data regardless of existing data
+        print("Force creating sample data...")
+        create_sample_data()
+    else:
+        print("Skipping sample data creation. Use --sample to create sample data.")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--sample":
-        init_database()
-        create_sample_data()
-    else:
-        init_database()
+    main()

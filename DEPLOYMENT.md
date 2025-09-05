@@ -20,7 +20,7 @@ This guide will walk you through deploying your Nalewka application on Render.
    - **Environment**: `Python 3`
    - **Region**: Choose closest to your users
    - **Branch**: `main` (or your default branch)
-   - **Build Command**: `pip install -r requirements.txt`
+   - **Build Command**: `bash build.sh`
    - **Start Command**: `gunicorn --bind 0.0.0.0:$PORT nalewka:app`
 
 ### Step 2: Add Environment Variables
@@ -58,7 +58,7 @@ services:
   - type: web
     name: nalewka-app
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: bash build.sh
     startCommand: gunicorn --bind 0.0.0.0:$PORT nalewka:app
     envVars:
       - key: PYTHON_VERSION
@@ -84,26 +84,34 @@ databases:
 2. Connect your repository
 3. Render will automatically create both the web service and database
 
+## Database Migrations and Data Preservation
+
+The deployment process has been designed to handle database migrations while preserving existing data:
+
+1. **Automatic Migrations**: The `deploy.py` script automatically runs database migrations using Flask-Migrate
+2. **Data Preservation**: Existing data is preserved during deployments
+3. **Smart Sample Data Creation**: Sample data is only created if no users exist in the database
+
 ## Post-Deployment Setup
 
-### Initialize Database
+### Initialize Database with Sample Data
 
-After deployment, you need to initialize the database:
+After deployment, you can optionally initialize the database with sample data:
 
 1. **Option A: Using Render Shell**
    - Go to your web service in Render dashboard
    - Click "Shell" tab
    - Run: `python deploy.py --sample`
 
-2. **Option B: Add to Build Script**
-   - Modify `build.sh` to include database initialization
-   - Add: `python deploy.py --sample` to the build script
+2. **Option B: Force Sample Data Creation**
+   - If you want to recreate sample data even when users exist:
+   - Run: `python deploy.py --force-sample`
 
 ### Verify Deployment
 
 1. Visit your application URL (provided by Render)
 2. You should see the Nalewka homepage
-3. Try registering a new user or logging in with:
+3. If you created sample data, try logging in with:
    - Username: `admin`
    - Password: `password123`
 

@@ -6,9 +6,8 @@ echo "Starting build process..."
 # Install dependencies
 pip install -r requirements.txt
 
-# Initialize database and run migrations
-echo "Setting up database..."
-flask db upgrade
+# Run database migrations
+echo "Running database migrations..."
 python deploy.py
 
 echo "Build completed successfully!"
