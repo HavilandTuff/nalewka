@@ -37,20 +37,20 @@ This document outlines the plan for refactoring the `nalewka` project to improve
 
 ### Phase 3: Advanced Improvements (Future-Proofing the Application)
 
-- [ ] **7. Refactor to a REST API:**
-    - [ ] Create a dedicated `/api` blueprint to expose the application's functionality as a RESTful API.
+- [x] **7. Refactor to a REST API:**
+    - [x] Create a dedicated `/api` blueprint to expose the application's functionality as a RESTful API.
     - **API Blueprint Implementation:**
-        - [ ] Create `app/api.py` with a new Flask Blueprint for API endpoints
-        - [ ] Register the API blueprint in `app/__init__.py`
-        - [ ] Implement versioned API endpoints (e.g., `/api/v1/`)
+        - [x] Create `app/api.py` with a new Flask Blueprint for API endpoints
+        - [x] Register the API blueprint in `app/__init__.py`
+        - [x] Implement versioned API endpoints (e.g., `/api/v1/`)
     - **Authentication & Authorization:**
-        - [ ] Implement token-based authentication for API access
-        - [ ] Create API key management for third-party integrations
+        - [x] Implement token-based authentication for API access
+        - [x] Create API key management for third-party integrations
         - [ ] Ensure proper permission checks for all API endpoints
     - **Core API Endpoints:**
-        - [ ] **Users API:**
-            - [ ] `GET /api/v1/users/me` - Get current user profile
-            - [ ] `PUT /api/v1/users/me` - Update current user profile
+        - [x] **Users API:**
+            - [x] `GET /api/v1/users/me` - Get current user profile
+            - [x] `PUT /api/v1/users/me` - Update current user profile
         - [ ] **Liquors API:**
             - [ ] `GET /api/v1/liquors` - List all liquors for current user
             - [ ] `POST /api/v1/liquors` - Create a new liquor
