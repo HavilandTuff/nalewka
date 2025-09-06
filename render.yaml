@@ -2,11 +2,13 @@ services:
   - type: web
     name: nalewka-app
     env: python
-    buildCommand: bash build.sh
+    buildCommand: pip install -r requirements.txt && flask db upgrade
     startCommand: gunicorn --bind 0.0.0.0:$PORT nalewka:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
+      - key: FLASK_APP
+        value: nalewka:app
       - key: FLASK_ENV
         value: production
       - key: SECRET_KEY
