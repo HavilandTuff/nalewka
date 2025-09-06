@@ -7,6 +7,9 @@ from flask import current_app, jsonify, request
 
 from app import db
 from app.models import User
+from app.repositories import ApiKeyRepository
+
+api_key_repository = ApiKeyRepository()
 
 
 def encode_auth_token(user_id: int) -> Optional[str]:
@@ -73,6 +76,40 @@ def token_required(f: Callable) -> Callable:
 
         # Add current_user to kwargs so it can be accessed in the route
         kwargs["current_user"] = current_user
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+def api_key_required(f: Callable) -> Callable:
+    """
+    Decorator for requiring API key authentication
+    """
+
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        api_key = None
+        if "Authorization" in request.headers:
+            auth_header = request.headers["Authorization"]
+            try:
+                # Expecting "ApiKey <key>"
+                api_key = auth_header.split(" ")[1]
+            except IndexError:
+                return jsonify({"message": "API key malformed"}), 401
+        if not api_key:
+            return jsonify({"message": "API key is missing"}), 401
+
+        # Look up the API key in the database
+        api_key_obj = api_key_repository.get_by_key(api_key)
+        if not api_key_obj or not api_key_obj.is_active:
+            return jsonify({"message": "Invalid or inactive API key"}), 401
+
+        # Update last used timestamp
+        api_key_obj.last_used = datetime.datetime.utcnow()
+        db.session.commit()
+
+        # Add current_user to kwargs so it can be accessed in the route
+        kwargs["current_user"] = api_key_obj.user
         return f(*args, **kwargs)
 
     return decorated

@@ -1,10 +1,13 @@
+import secrets
+import string
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from app.models import Batch
-from app.repositories import BatchRepository, LiquorRepository
+from app.models import ApiKey, Batch
+from app.repositories import ApiKeyRepository, BatchRepository, LiquorRepository
 
 liquor_repository = LiquorRepository()
 batch_repository = BatchRepository()
+api_key_repository = ApiKeyRepository()
 
 
 def create_batch_with_ingredients(
@@ -82,3 +85,51 @@ def update_batch_bottles(
     except Exception as e:
         batch_repository.rollback()
         return None, f"An unexpected error occurred: {str(e)}"
+
+
+def generate_api_key() -> str:
+    """Generate a secure API key"""
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(32))
+
+
+def create_api_key(user_id: int, name: str) -> Tuple[Optional[ApiKey], Optional[str]]:
+    """
+    Service to create a new API key for a user.
+    Returns (api_key_object, None) on success or (None, error_message) on failure.
+    """
+    try:
+        key = generate_api_key()
+        api_key = ApiKey(user_id=user_id, key=key, name=name)
+        api_key_repository.add(api_key)
+        api_key_repository.commit()
+        return api_key, None
+    except Exception as e:
+        api_key_repository.rollback()
+        return None, f"An unexpected error occurred: {str(e)}"
+
+
+def get_api_keys_for_user(user_id: int) -> List[ApiKey]:
+    """Service to get all API keys for a user"""
+    return api_key_repository.get_all_for_user(user_id)
+
+
+def get_api_key_by_id_and_user(api_key_id: int, user_id: int) -> Optional[ApiKey]:
+    """Service to get an API key by ID for a specific user"""
+    return api_key_repository.get_by_id_and_user(api_key_id, user_id)
+
+
+def delete_api_key(api_key_id: int, user_id: int) -> Tuple[bool, Optional[str]]:
+    """
+    Service to delete an API key.
+    Returns (True, None) on success or (False, error_message) on failure.
+    """
+    try:
+        api_key = api_key_repository.get_by_id_and_user(api_key_id, user_id)
+        if not api_key:
+            return False, "API key not found."
+
+        api_key_repository.delete(api_key)
+        return True, None
+    except Exception as e:
+        return False, f"An unexpected error occurred: {str(e)}"

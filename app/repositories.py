@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload
 
 from app import db
-from app.models import Batch, BatchFormula, Ingredient, Liquor, User
+from app.models import ApiKey, Batch, BatchFormula, Ingredient, Liquor, User
 
 T = TypeVar("T")
 
@@ -28,6 +28,31 @@ class BaseRepository:
 
     def flush(self) -> None:
         db.session.flush()
+
+
+class ApiKeyRepository(BaseRepository):
+    def __init__(self) -> None:
+        super().__init__(ApiKey)
+
+    def get_by_key(self, key: str) -> Optional[ApiKey]:
+        result = db.session.scalar(db.select(ApiKey).where(ApiKey.key == key))
+        return cast(Optional[ApiKey], result)
+
+    def get_all_for_user(self, user_id: int) -> List[ApiKey]:
+        result = db.session.scalars(
+            db.select(ApiKey).where(ApiKey.user_id == user_id)
+        ).all()
+        return list(result)
+
+    def get_by_id_and_user(self, api_key_id: int, user_id: int) -> Optional[ApiKey]:
+        result = db.session.scalar(
+            db.select(ApiKey).where(ApiKey.id == api_key_id, ApiKey.user_id == user_id)
+        )
+        return cast(Optional[ApiKey], result)
+
+    def delete(self, api_key: ApiKey) -> None:
+        db.session.delete(api_key)
+        db.session.commit()
 
 
 class LiquorRepository(BaseRepository):

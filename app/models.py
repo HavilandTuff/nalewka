@@ -22,6 +22,7 @@ class User(UserMixin, BaseModel):
     )
 
     liquors: so.Mapped[list["Liquor"]] = so.relationship(back_populates="user")
+    api_keys: so.Mapped[list["ApiKey"]] = so.relationship(back_populates="user")
 
     def __repr__(self) -> str:
         return f"<User {self.username}>"
@@ -35,6 +36,25 @@ class User(UserMixin, BaseModel):
         if not self.password_hash:
             return False
         return check_password_hash(self.password_hash, password)
+
+
+class ApiKey(BaseModel):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    key: so.Mapped[str] = so.mapped_column(sa.String(64), unique=True, index=True)
+    name: so.Mapped[str] = so.mapped_column(sa.String(128))
+    created_at: so.Mapped[datetime] = so.mapped_column(
+        index=True, default=lambda: datetime.now(timezone.utc)
+    )
+    last_used: so.Mapped[Optional[datetime]] = so.mapped_column(
+        sa.DateTime(), nullable=True
+    )
+    is_active: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=True)
+
+    user: so.Mapped[User] = so.relationship(back_populates="api_keys")
+
+    def __repr__(self) -> str:
+        return f"<ApiKey {self.name} for User {self.user_id}>"
 
 
 class Liquor(BaseModel):

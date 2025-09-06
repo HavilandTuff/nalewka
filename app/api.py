@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request
 from app import db
 from app.auth_utils import encode_auth_token, token_required
 from app.models import User
+from app.services import create_api_key, delete_api_key, get_api_keys_for_user
 
 # Create a Blueprint object for API endpoints
 api_bp = Blueprint("api", __name__, url_prefix="/api")
@@ -64,6 +65,73 @@ def api_login() -> Any:
         ),
         200,
     )
+
+
+@api_v1_bp.route("/auth/api-keys", methods=["POST"])
+@token_required
+def create_api_key_endpoint(current_user: User) -> Any:
+    """Create a new API key for the current user"""
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    name = data.get("name")
+    if not name:
+        return jsonify({"error": "Name is required"}), 400
+
+    api_key, error = create_api_key(current_user.id, name)
+    if error:
+        return jsonify({"error": error}), 500
+
+    return (
+        jsonify(
+            {
+                "id": api_key.id,
+                "name": api_key.name,
+                "key": api_key.key,
+                "created_at": api_key.created_at.isoformat(),
+                "is_active": api_key.is_active,
+            }
+        ),
+        201,
+    )
+
+
+@api_v1_bp.route("/auth/api-keys", methods=["GET"])
+@token_required
+def list_api_keys(current_user: User) -> Any:
+    """List all API keys for the current user"""
+    api_keys = get_api_keys_for_user(current_user.id)
+
+    return (
+        jsonify(
+            [
+                {
+                    "id": api_key.id,
+                    "name": api_key.name,
+                    "created_at": api_key.created_at.isoformat(),
+                    "last_used": (
+                        api_key.last_used.isoformat() if api_key.last_used else None
+                    ),
+                    "is_active": api_key.is_active,
+                }
+                for api_key in api_keys
+            ]
+        ),
+        200,
+    )
+
+
+@api_v1_bp.route("/auth/api-keys/<int:api_key_id>", methods=["DELETE"])
+@token_required
+def delete_api_key_endpoint(current_user: User, api_key_id: int) -> Any:
+    """Delete an API key"""
+    success, error = delete_api_key(api_key_id, current_user.id)
+    if error:
+        return jsonify({"error": error}), 404 if "not found" in error.lower() else 500
+
+    return jsonify({"message": "API key deleted successfully"}), 200
 
 
 @api_v1_bp.route("/users/me", methods=["GET"])
