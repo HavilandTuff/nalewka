@@ -89,21 +89,27 @@ def _get_database_uri() -> str:
     Get the appropriate database URI based on the environment.
     On Render, it modifies the DATABASE_URL to be compatible with SQLAlchemy.
     """
+    print("Getting database URI...")
     # Check if we're running tests
     if os.environ.get("TESTING") == "1":
+        print("Using in-memory SQLite for testing.")
         return "sqlite:///:memory:"
 
     # Check if we're in production (Render)
     if os.environ.get("RENDER") == "true":
+        print("Running on Render.")
         database_url = os.environ.get("DATABASE_URL")
+        print(f"DATABASE_URL from environment: {database_url}")
         if database_url and database_url.startswith("postgres://"):
             # SQLAlchemy 2.0 requires 'postgresql+psycopg2://'
             database_url = database_url.replace(
                 "postgres://", "postgresql+psycopg2://", 1
             )
+            print(f"Modified DATABASE_URL: {database_url}")
         return database_url or "sqlite:///site.db"
 
     # Default to local SQLite database in instance folder
+    print("Using local SQLite database.")
     return "sqlite:///site.db"
 
 
