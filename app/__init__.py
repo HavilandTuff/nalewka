@@ -64,10 +64,12 @@ def create_app(config_override: Optional[Dict[str, Any]] = None) -> Flask:
     login.init_app(app)
     csrf.init_app(app)
 
-    # Import and register the blueprint
+    # Import and register the blueprints
+    from app.api import api_bp
     from app.routes import main_bp
 
     app.register_blueprint(main_bp)
+    app.register_blueprint(api_bp)
 
     # Register error handlers on the app
     @app.errorhandler(404)
