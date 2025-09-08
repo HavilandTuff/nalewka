@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Type, TypeVar, cast
+from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, cast
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload
@@ -70,6 +70,29 @@ class LiquorRepository(BaseRepository):
             db.session.query(Liquor.id).filter_by(id=liquor_id, user_id=user_id).first()
             is not None
         )
+
+    def create(
+        self, name: str, user_id: int, description: Optional[str] = None
+    ) -> Liquor:
+        liquor = Liquor(name=name, user_id=user_id, description=description)
+        self.add(liquor)
+        self.commit()
+        return liquor
+
+    def get_by_id_and_user(self, liquor_id: int, user_id: int) -> Optional[Liquor]:
+        result = db.session.scalar(
+            db.select(Liquor).where(Liquor.id == liquor_id, Liquor.user_id == user_id)
+        )
+        return cast(Optional[Liquor], result)
+
+    def update(self, liquor: Liquor, data: Dict[str, Any]) -> None:
+        for key, value in data.items():
+            setattr(liquor, key, value)
+        self.commit()
+
+    def delete(self, liquor: Liquor) -> None:
+        db.session.delete(liquor)
+        db.session.commit()
 
 
 class BatchRepository(BaseRepository):

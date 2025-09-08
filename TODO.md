@@ -51,12 +51,12 @@ This document outlines the plan for refactoring the `nalewka` project to improve
         - [x] **Users API:**
             - [x] `GET /api/v1/users/me` - Get current user profile
             - [x] `PUT /api/v1/users/me` - Update current user profile
-        - [ ] **Liquors API:**
-            - [ ] `GET /api/v1/liquors` - List all liquors for current user
-            - [ ] `POST /api/v1/liquors` - Create a new liquor
-            - [ ] `GET /api/v1/liquors/<id>` - Get details of a specific liquor
-            - [ ] `PUT /api/v1/liquors/<id>` - Update a specific liquor
-            - [ ] `DELETE /api/v1/liquors/<id>` - Delete a specific liquor
+        - [x] **Liquors API:**
+            - [x] `GET /api/v1/liquors` - List all liquors for current user
+            - [x] `POST /api/v1/liquors` - Create a new liquor
+            - [x] `GET /api/v1/liquors/<id>` - Get details of a specific liquor
+            - [x] `PUT /api/v1/liquors/<id>` - Update a specific liquor
+            - [x] `DELETE /api/v1/liquors/<id>` - Delete a specific liquor
         - [ ] **Ingredients API:**
             - [ ] `GET /api/v1/ingredients` - List all ingredients
             - [ ] `POST /api/v1/ingredients` - Create a new ingredient

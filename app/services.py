@@ -2,7 +2,7 @@ import secrets
 import string
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from app.models import ApiKey, Batch
+from app.models import ApiKey, Batch, Liquor
 from app.repositories import ApiKeyRepository, BatchRepository, LiquorRepository
 
 liquor_repository = LiquorRepository()
@@ -133,3 +133,40 @@ def delete_api_key(api_key_id: int, user_id: int) -> Tuple[bool, Optional[str]]:
         return True, None
     except Exception as e:
         return False, f"An unexpected error occurred: {str(e)}"
+
+
+def get_liquors_for_user(user_id: int) -> List[Liquor]:
+    """Service to get all liquors for a user"""
+    return liquor_repository.get_all_for_user(user_id)
+
+
+def create_liquor(user_id: int, name: str, description: Optional[str] = None) -> Liquor:
+    """Service to create a new liquor"""
+    return liquor_repository.create(name=name, user_id=user_id, description=description)
+
+
+def get_liquor_by_id(liquor_id: int, user_id: int) -> Optional[Liquor]:
+    """Service to get a liquor by ID for a specific user"""
+    return liquor_repository.get_by_id_and_user(liquor_id, user_id)
+
+
+def update_liquor(
+    liquor_id: int, user_id: int, data: Dict[str, Any]
+) -> Optional[Liquor]:
+    """Service to update a liquor"""
+    liquor = get_liquor_by_id(liquor_id, user_id)
+    if not liquor:
+        return None
+
+    liquor_repository.update(liquor, data)
+    return liquor
+
+
+def delete_liquor(liquor_id: int, user_id: int) -> bool:
+    """Service to delete a liquor"""
+    liquor = get_liquor_by_id(liquor_id, user_id)
+    if not liquor:
+        return False
+
+    liquor_repository.delete(liquor)
+    return True

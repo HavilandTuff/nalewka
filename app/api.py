@@ -5,7 +5,16 @@ from flask import Blueprint, jsonify, request
 from app import db
 from app.auth_utils import encode_auth_token, token_required
 from app.models import User
-from app.services import create_api_key, delete_api_key, get_api_keys_for_user
+from app.services import (
+    create_api_key,
+    create_liquor,
+    delete_api_key,
+    delete_liquor,
+    get_api_keys_for_user,
+    get_liquor_by_id,
+    get_liquors_for_user,
+    update_liquor,
+)
 
 # Create a Blueprint object for API endpoints
 api_bp = Blueprint("api", __name__, url_prefix="/api")
@@ -196,3 +205,111 @@ def update_current_user(current_user: User) -> Any:
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Failed to update user: {str(e)}"}), 500
+
+
+@api_v1_bp.route("/liquors", methods=["GET"])
+@token_required
+def get_liquors(current_user: User) -> Any:
+    """List all liquors for the current user"""
+    liquors = get_liquors_for_user(current_user.id)
+    return (
+        jsonify(
+            [
+                {
+                    "id": liquor.id,
+                    "name": liquor.name,
+                    "description": liquor.description,
+                    "created_at": liquor.created.isoformat(),
+                }
+                for liquor in liquors
+            ]
+        ),
+        200,
+    )
+
+
+@api_v1_bp.route("/liquors", methods=["POST"])
+@token_required
+def create_liquor_endpoint(current_user: User) -> Any:
+    """Create a new liquor"""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    name = data.get("name")
+    if not name:
+        return jsonify({"error": "Name is required"}), 400
+
+    description = data.get("description")
+
+    liquor = create_liquor(user_id=current_user.id, name=name, description=description)
+
+    return (
+        jsonify(
+            {
+                "id": liquor.id,
+                "name": liquor.name,
+                "description": liquor.description,
+                "created_at": liquor.created.isoformat(),
+            }
+        ),
+        201,
+    )
+
+
+@api_v1_bp.route("/liquors/<int:liquor_id>", methods=["GET"])
+@token_required
+def get_liquor(current_user: User, liquor_id: int) -> Any:
+    """Get details of a specific liquor"""
+    liquor = get_liquor_by_id(liquor_id, current_user.id)
+    if not liquor:
+        return jsonify({"error": "Liquor not found"}), 404
+
+    return (
+        jsonify(
+            {
+                "id": liquor.id,
+                "name": liquor.name,
+                "description": liquor.description,
+                "created_at": liquor.created.isoformat(),
+            }
+        ),
+        200,
+    )
+
+
+@api_v1_bp.route("/liquors/<int:liquor_id>", methods=["PUT"])
+@token_required
+def update_liquor_endpoint(current_user: User, liquor_id: int) -> Any:
+    """Update a specific liquor"""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    liquor = update_liquor(liquor_id, current_user.id, data)
+
+    if not liquor:
+        return jsonify({"error": "Liquor not found"}), 404
+
+    return (
+        jsonify(
+            {
+                "id": liquor.id,
+                "name": liquor.name,
+                "description": liquor.description,
+                "created_at": liquor.created.isoformat(),
+            }
+        ),
+        200,
+    )
+
+
+@api_v1_bp.route("/liquors/<int:liquor_id>", methods=["DELETE"])
+@token_required
+def delete_liquor_endpoint(current_user: User, liquor_id: int) -> Any:
+    """Delete a specific liquor"""
+    success = delete_liquor(liquor_id, current_user.id)
+    if not success:
+        return jsonify({"error": "Liquor not found"}), 404
+
+    return jsonify({}), 204
