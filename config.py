@@ -21,7 +21,6 @@ class Settings(BaseSettings):
     # Database configuration - use environment-specific defaults
     SQLALCHEMY_DATABASE_URI: str = Field(
         default_factory=lambda: _get_database_uri(),
-        pattern=r"^sqlite://.*\.db$|^postgresql\+psycopg2://.*$|^sqlite:///:memory:$",
         description="Database connection URI. Supports SQLite and PostgreSQL.",
     )
 
@@ -90,10 +89,9 @@ def _get_database_uri() -> str:
     if os.environ.get("TESTING") == "1":
         return "sqlite:///:memory:"
 
-    # Check if we're in production (Render)
-    if os.environ.get("RENDER") == "true":
-        # Use PostgreSQL in production
-        return os.environ.get("DATABASE_URL", "sqlite:///site.db")
+    # Check for DATABASE_URL environment variable (used in production on Render)
+    if database_url := os.environ.get("DATABASE_URL"):
+        return database_url
 
     # Default to local SQLite database in instance folder
     return "sqlite:///site.db"
