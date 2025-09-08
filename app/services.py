@@ -211,3 +211,38 @@ def delete_ingredient(ingredient_id: int) -> bool:
 
     ingredient_repository.delete(ingredient)
     return True
+
+
+def get_batches_for_liquor(liquor_id: int) -> List[Batch]:
+    """Service to get all batches for a liquor"""
+    return batch_repository.get_all_for_liquor(liquor_id)
+
+
+def create_batch(batch_data: dict) -> Tuple[Optional[Batch], Optional[str]]:
+    """Service to create a new batch"""
+    return batch_repository.create(batch_data)
+
+
+def get_batch_by_id(batch_id: int) -> Optional[Batch]:
+    """Service to get a batch by ID"""
+    return batch_repository.get(batch_id)
+
+
+def update_batch(batch_id: int, data: Dict[str, Any]) -> Optional[Batch]:
+    """Service to update a batch"""
+    batch = get_batch_by_id(batch_id)
+    if not batch:
+        return None
+
+    batch_repository.update(batch, data)
+    return batch
+
+
+def delete_batch(batch_id: int) -> bool:
+    """Service to delete a batch"""
+    batch = get_batch_by_id(batch_id)
+    if not batch:
+        return False
+
+    batch_repository.delete(batch)
+    return True

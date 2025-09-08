@@ -138,6 +138,27 @@ class BatchRepository(BaseRepository):
             self.rollback()
             return None, str(e)
 
+    def create(self, batch_data: dict) -> Tuple[Optional[Batch], Optional[str]]:
+        try:
+            batch = Batch(**batch_data)
+            batch.validate_bottle_data()
+            self.add(batch)
+            self.commit()
+            return batch, None
+        except Exception as e:
+            self.rollback()
+            return None, str(e)
+
+    def update(self, batch: Batch, data: Dict[str, Any]) -> None:
+        for key, value in data.items():
+            setattr(batch, key, value)
+        batch.validate_bottle_data()
+        self.commit()
+
+    def delete(self, batch: Batch) -> None:
+        db.session.delete(batch)
+        db.session.commit()
+
 
 class UserRepository(BaseRepository):
     def __init__(self) -> None:

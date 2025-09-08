@@ -7,16 +7,23 @@ from app.auth_utils import encode_auth_token, token_required
 from app.models import User
 from app.services import (
     create_api_key,
+    create_batch,
+    create_batch_with_ingredients,
     create_ingredient,
     create_liquor,
     delete_api_key,
+    delete_batch,
     delete_ingredient,
     delete_liquor,
     get_all_ingredients,
     get_api_keys_for_user,
+    get_batch_by_id,
+    get_batches_for_liquor,
     get_ingredient_by_id,
     get_liquor_by_id,
     get_liquors_for_user,
+    update_batch,
+    update_batch_bottles,
     update_ingredient,
     update_liquor,
 )
@@ -430,3 +437,253 @@ def delete_ingredient_endpoint(current_user: User, ingredient_id: int) -> Any:
         return jsonify({"error": "Ingredient not found"}), 404
 
     return jsonify({}), 204
+
+
+@api_v1_bp.route("/liquors/<int:liquor_id>/batches", methods=["GET"])
+@token_required
+def get_batches(current_user: User, liquor_id: int) -> Any:
+    """List all batches for a liquor"""
+    # First check if the liquor exists and belongs to the user
+    liquor = get_liquor_by_id(liquor_id, current_user.id)
+    if not liquor:
+        return jsonify({"error": "Liquor not found"}), 404
+
+    batches = get_batches_for_liquor(liquor_id)
+    return (
+        jsonify(
+            [
+                {
+                    "id": batch.id,
+                    "date": batch.date.isoformat(),
+                    "description": batch.description,
+                    "bottle_count": batch.bottle_count,
+                    "bottle_volume": batch.bottle_volume,
+                    "bottle_volume_unit": batch.bottle_volume_unit,
+                    "total_volume": batch.total_volume,
+                    "ingredient_count": batch.ingredient_count,
+                }
+                for batch in batches
+            ]
+        ),
+        200,
+    )
+
+
+@api_v1_bp.route("/liquors/<int:liquor_id>/batches", methods=["POST"])
+@token_required
+def create_batch_endpoint(current_user: User, liquor_id: int) -> Any:
+    """Create a new batch"""
+    # First check if the liquor exists and belongs to the user
+    liquor = get_liquor_by_id(liquor_id, current_user.id)
+    if not liquor:
+        return jsonify({"error": "Liquor not found"}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    # Prepare batch data
+    batch_data = {
+        "liquor_id": liquor_id,
+        "description": data.get("description", ""),
+        "bottle_count": data.get("bottle_count"),
+        "bottle_volume": data.get("bottle_volume"),
+        "bottle_volume_unit": data.get("bottle_volume_unit", "ml"),
+    }
+
+    # Handle date if provided
+    if "date" in data:
+        try:
+            # Parse the date string and convert to datetime
+            from datetime import datetime
+
+            date_str = data["date"]
+            if isinstance(date_str, str):
+                # Try to parse as date first, then as datetime
+                try:
+                    from datetime import date
+
+                    parsed_date = date.fromisoformat(date_str)
+                    batch_data["date"] = datetime.combine(
+                        parsed_date, datetime.min.time()
+                    )
+                except ValueError:
+                    batch_data["date"] = datetime.fromisoformat(date_str)
+        except ValueError:
+            return jsonify({"error": "Invalid date format"}), 400
+
+    # If ingredients are provided, use the create_batch_with_ingredients service
+    if "ingredients" in data:
+        batch, error = create_batch_with_ingredients(data, liquor_id, current_user.id)
+    else:
+        # Otherwise, create a simple batch
+        batch, error = create_batch(batch_data)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return (
+        jsonify(
+            {
+                "id": batch.id,
+                "date": batch.date.isoformat(),
+                "description": batch.description,
+                "bottle_count": batch.bottle_count,
+                "bottle_volume": batch.bottle_volume,
+                "bottle_volume_unit": batch.bottle_volume_unit,
+                "total_volume": batch.total_volume,
+                "ingredient_count": batch.ingredient_count,
+            }
+        ),
+        201,
+    )
+
+
+@api_v1_bp.route("/batches/<int:batch_id>", methods=["GET"])
+@token_required
+def get_batch(current_user: User, batch_id: int) -> Any:
+    """Get details of a specific batch"""
+    batch = get_batch_by_id(batch_id)
+    if not batch:
+        return jsonify({"error": "Batch not found"}), 404
+
+    # Check if the batch belongs to a liquor that belongs to the user
+    liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
+    if not liquor:
+        return jsonify({"error": "Batch not found"}), 404
+
+    # Include formulas data in the response
+    formulas_data = []
+    for formula in batch.formulas:
+        formulas_data.append(
+            {
+                "id": formula.id,
+                "ingredient_id": formula.ingredient_id,
+                "ingredient_name": formula.ingredient.name,
+                "quantity": formula.quantity,
+                "unit": formula.unit,
+            }
+        )
+
+    return (
+        jsonify(
+            {
+                "id": batch.id,
+                "date": batch.date.isoformat(),
+                "description": batch.description,
+                "bottle_count": batch.bottle_count,
+                "bottle_volume": batch.bottle_volume,
+                "bottle_volume_unit": batch.bottle_volume_unit,
+                "total_volume": batch.total_volume,
+                "ingredient_count": batch.ingredient_count,
+                "formulas": formulas_data,
+            }
+        ),
+        200,
+    )
+
+
+@api_v1_bp.route("/batches/<int:batch_id>", methods=["PUT"])
+@token_required
+def update_batch_endpoint(current_user: User, batch_id: int) -> Any:
+    """Update a specific batch"""
+    batch = get_batch_by_id(batch_id)
+    if not batch:
+        return jsonify({"error": "Batch not found"}), 404
+
+    # Check if the batch belongs to a liquor that belongs to the user
+    liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
+    if not liquor:
+        return jsonify({"error": "Batch not found"}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    # Remove liquor_id from data if present, as it shouldn't be updated
+    data.pop("liquor_id", None)
+
+    updated_batch = update_batch(batch_id, data)
+    if not updated_batch:
+        return jsonify({"error": "Batch not found"}), 404
+
+    return (
+        jsonify(
+            {
+                "id": updated_batch.id,
+                "date": updated_batch.date.isoformat(),
+                "description": updated_batch.description,
+                "bottle_count": updated_batch.bottle_count,
+                "bottle_volume": updated_batch.bottle_volume,
+                "bottle_volume_unit": updated_batch.bottle_volume_unit,
+                "total_volume": updated_batch.total_volume,
+                "ingredient_count": updated_batch.ingredient_count,
+            }
+        ),
+        200,
+    )
+
+
+@api_v1_bp.route("/batches/<int:batch_id>", methods=["DELETE"])
+@token_required
+def delete_batch_endpoint(current_user: User, batch_id: int) -> Any:
+    """Delete a specific batch"""
+    batch = get_batch_by_id(batch_id)
+    if not batch:
+        return jsonify({"error": "Batch not found"}), 404
+
+    # Check if the batch belongs to a liquor that belongs to the user
+    liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
+    if not liquor:
+        return jsonify({"error": "Batch not found"}), 404
+
+    success = delete_batch(batch_id)
+    if not success:
+        return jsonify({"error": "Batch not found"}), 404
+
+    return jsonify({}), 204
+
+
+@api_v1_bp.route("/batches/<int:batch_id>/bottles", methods=["PUT"])
+@token_required
+def update_batch_bottles_endpoint(current_user: User, batch_id: int) -> Any:
+    """Update bottle information for a batch"""
+    batch = get_batch_by_id(batch_id)
+    if not batch:
+        return jsonify({"error": "Batch not found"}), 404
+
+    # Check if the batch belongs to a liquor that belongs to the user
+    liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
+    if not liquor:
+        return jsonify({"error": "Batch not found"}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    # Prepare data for the service function
+    form_data = {
+        "bottle_count": data.get("bottle_count"),
+        "bottle_volume": data.get("bottle_volume"),
+        "bottle_volume_unit": data.get("bottle_volume_unit", "ml"),
+    }
+
+    updated_batch, error = update_batch_bottles(batch_id, current_user.id, form_data)
+    if error:
+        return jsonify({"error": error}), 400
+
+    return (
+        jsonify(
+            {
+                "id": updated_batch.id,
+                "date": updated_batch.date.isoformat(),
+                "description": updated_batch.description,
+                "bottle_count": updated_batch.bottle_count,
+                "bottle_volume": updated_batch.bottle_volume,
+                "bottle_volume_unit": updated_batch.bottle_volume_unit,
+                "total_volume": updated_batch.total_volume,
+                "ingredient_count": updated_batch.ingredient_count,
+            }
+        ),
+        200,
+    )

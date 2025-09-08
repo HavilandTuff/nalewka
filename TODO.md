@@ -63,13 +63,13 @@ This document outlines the plan for refactoring the `nalewka` project to improve
             - [x] `GET /api/v1/ingredients/<id>` - Get details of a specific ingredient
             - [x] `PUT /api/v1/ingredients/<id>` - Update a specific ingredient
             - [x] `DELETE /api/v1/ingredients/<id>` - Delete a specific ingredient
-        - [ ] **Batches API:**
-            - [ ] `GET /api/v1/liquors/<liquor_id>/batches` - List all batches for a liquor
-            - [ ] `POST /api/v1/liquors/<liquor_id>/batches` - Create a new batch
-            - [ ] `GET /api/v1/batches/<id>` - Get details of a specific batch
-            - [ ] `PUT /api/v1/batches/<id>` - Update a specific batch
-            - [ ] `DELETE /api/v1/batches/<id>` - Delete a specific batch
-            - [ ] `PUT /api/v1/batches/<id>/bottles` - Update bottle information for a batch
+        - [x] **Batches API:**
+            - [x] `GET /api/v1/liquors/<liquor_id>/batches` - List all batches for a liquor
+            - [x] `POST /api/v1/liquors/<liquor_id>/batches` - Create a new batch
+            - [x] `GET /api/v1/batches/<id>` - Get details of a specific batch
+            - [x] `PUT /api/v1/batches/<id>` - Update a specific batch
+            - [x] `DELETE /api/v1/batches/<id>` - Delete a specific batch
+            - [x] `PUT /api/v1/batches/<id>/bottles` - Update bottle information for a batch
         - [ ] **Batch Formulas API:**
             - [ ] `GET /api/v1/batches/<batch_id>/formulas` - List all formulas for a batch
             - [ ] `POST /api/v1/batches/<batch_id>/formulas` - Add a formula to a batch
