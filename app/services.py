@@ -2,12 +2,18 @@ import secrets
 import string
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from app.models import ApiKey, Batch, Liquor
-from app.repositories import ApiKeyRepository, BatchRepository, LiquorRepository
+from app.models import ApiKey, Batch, Ingredient, Liquor
+from app.repositories import (
+    ApiKeyRepository,
+    BatchRepository,
+    IngredientRepository,
+    LiquorRepository,
+)
 
 liquor_repository = LiquorRepository()
 batch_repository = BatchRepository()
 api_key_repository = ApiKeyRepository()
+ingredient_repository = IngredientRepository()
 
 
 def create_batch_with_ingredients(
@@ -169,4 +175,39 @@ def delete_liquor(liquor_id: int, user_id: int) -> bool:
         return False
 
     liquor_repository.delete(liquor)
+    return True
+
+
+def get_all_ingredients() -> List[Ingredient]:
+    """Service to get all ingredients"""
+    return ingredient_repository.get_all()
+
+
+def create_ingredient(name: str, description: Optional[str] = None) -> Ingredient:
+    """Service to create a new ingredient"""
+    return ingredient_repository.create(name=name, description=description)
+
+
+def get_ingredient_by_id(ingredient_id: int) -> Optional[Ingredient]:
+    """Service to get an ingredient by ID"""
+    return ingredient_repository.get(ingredient_id)
+
+
+def update_ingredient(ingredient_id: int, data: Dict[str, Any]) -> Optional[Ingredient]:
+    """Service to update an ingredient"""
+    ingredient = get_ingredient_by_id(ingredient_id)
+    if not ingredient:
+        return None
+
+    ingredient_repository.update(ingredient, data)
+    return ingredient
+
+
+def delete_ingredient(ingredient_id: int) -> bool:
+    """Service to delete an ingredient"""
+    ingredient = get_ingredient_by_id(ingredient_id)
+    if not ingredient:
+        return False
+
+    ingredient_repository.delete(ingredient)
     return True

@@ -163,3 +163,22 @@ class IngredientRepository(BaseRepository):
     def get_by_name(self, name: str) -> Optional[Ingredient]:
         result = db.session.scalar(db.select(Ingredient).where(Ingredient.name == name))
         return cast(Optional[Ingredient], result)
+
+    def create(self, name: str, description: Optional[str] = None) -> Ingredient:
+        ingredient = Ingredient(name=name, description=description)
+        self.add(ingredient)
+        self.commit()
+        return ingredient
+
+    def get(self, ingredient_id: int) -> Optional[Ingredient]:
+        result = db.session.get(Ingredient, ingredient_id)
+        return cast(Optional[Ingredient], result)
+
+    def update(self, ingredient: Ingredient, data: Dict[str, Any]) -> None:
+        for key, value in data.items():
+            setattr(ingredient, key, value)
+        self.commit()
+
+    def delete(self, ingredient: Ingredient) -> None:
+        db.session.delete(ingredient)
+        db.session.commit()

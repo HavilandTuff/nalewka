@@ -57,12 +57,12 @@ This document outlines the plan for refactoring the `nalewka` project to improve
             - [x] `GET /api/v1/liquors/<id>` - Get details of a specific liquor
             - [x] `PUT /api/v1/liquors/<id>` - Update a specific liquor
             - [x] `DELETE /api/v1/liquors/<id>` - Delete a specific liquor
-        - [ ] **Ingredients API:**
-            - [ ] `GET /api/v1/ingredients` - List all ingredients
-            - [ ] `POST /api/v1/ingredients` - Create a new ingredient
-            - [ ] `GET /api/v1/ingredients/<id>` - Get details of a specific ingredient
-            - [ ] `PUT /api/v1/ingredients/<id>` - Update a specific ingredient
-            - [ ] `DELETE /api/v1/ingredients/<id>` - Delete a specific ingredient
+        - [x] **Ingredients API:**
+            - [x] `GET /api/v1/ingredients` - List all ingredients
+            - [x] `POST /api/v1/ingredients` - Create a new ingredient
+            - [x] `GET /api/v1/ingredients/<id>` - Get details of a specific ingredient
+            - [x] `PUT /api/v1/ingredients/<id>` - Update a specific ingredient
+            - [x] `DELETE /api/v1/ingredients/<id>` - Delete a specific ingredient
         - [ ] **Batches API:**
             - [ ] `GET /api/v1/liquors/<liquor_id>/batches` - List all batches for a liquor
             - [ ] `POST /api/v1/liquors/<liquor_id>/batches` - Create a new batch

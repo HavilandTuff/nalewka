@@ -7,12 +7,17 @@ from app.auth_utils import encode_auth_token, token_required
 from app.models import User
 from app.services import (
     create_api_key,
+    create_ingredient,
     create_liquor,
     delete_api_key,
+    delete_ingredient,
     delete_liquor,
+    get_all_ingredients,
     get_api_keys_for_user,
+    get_ingredient_by_id,
     get_liquor_by_id,
     get_liquors_for_user,
+    update_ingredient,
     update_liquor,
 )
 
@@ -311,5 +316,117 @@ def delete_liquor_endpoint(current_user: User, liquor_id: int) -> Any:
     success = delete_liquor(liquor_id, current_user.id)
     if not success:
         return jsonify({"error": "Liquor not found"}), 404
+
+    return jsonify({}), 204
+
+
+@api_v1_bp.route("/ingredients", methods=["GET"])
+def get_ingredients() -> Any:
+    """List all ingredients"""
+    ingredients = get_all_ingredients()
+    return (
+        jsonify(
+            [
+                {
+                    "id": ingredient.id,
+                    "name": ingredient.name,
+                    "description": ingredient.description,
+                    "created_at": ingredient.created_at.isoformat(),
+                }
+                for ingredient in ingredients
+            ]
+        ),
+        200,
+    )
+
+
+@api_v1_bp.route("/ingredients", methods=["POST"])
+@token_required
+def create_ingredient_endpoint(current_user: User) -> Any:
+    """Create a new ingredient"""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    name = data.get("name")
+    if not name:
+        return jsonify({"error": "Name is required"}), 400
+
+    # Check if ingredient with this name already exists
+    existing_ingredient = get_all_ingredients()
+    for ingredient in existing_ingredient:
+        if ingredient.name.lower() == name.lower():
+            return jsonify({"error": "Ingredient with this name already exists"}), 400
+
+    description = data.get("description")
+
+    ingredient = create_ingredient(name=name, description=description)
+
+    return (
+        jsonify(
+            {
+                "id": ingredient.id,
+                "name": ingredient.name,
+                "description": ingredient.description,
+                "created_at": ingredient.created_at.isoformat(),
+            }
+        ),
+        201,
+    )
+
+
+@api_v1_bp.route("/ingredients/<int:ingredient_id>", methods=["GET"])
+def get_ingredient(ingredient_id: int) -> Any:
+    """Get details of a specific ingredient"""
+    ingredient = get_ingredient_by_id(ingredient_id)
+    if not ingredient:
+        return jsonify({"error": "Ingredient not found"}), 404
+
+    return (
+        jsonify(
+            {
+                "id": ingredient.id,
+                "name": ingredient.name,
+                "description": ingredient.description,
+                "created_at": ingredient.created_at.isoformat(),
+            }
+        ),
+        200,
+    )
+
+
+@api_v1_bp.route("/ingredients/<int:ingredient_id>", methods=["PUT"])
+@token_required
+def update_ingredient_endpoint(current_user: User, ingredient_id: int) -> Any:
+    """Update a specific ingredient"""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    ingredient = update_ingredient(ingredient_id, data)
+
+    if not ingredient:
+        return jsonify({"error": "Ingredient not found"}), 404
+
+    return (
+        jsonify(
+            {
+                "id": ingredient.id,
+                "name": ingredient.name,
+                "description": ingredient.description,
+                "created_at": ingredient.created_at.isoformat(),
+            }
+        ),
+        200,
+    )
+
+
+@api_v1_bp.route("/ingredients/<int:ingredient_id>", methods=["DELETE"])
+@token_required
+def delete_ingredient_endpoint(current_user: User, ingredient_id: int) -> Any:
+    """Delete a specific ingredient"""
+    success = delete_ingredient(ingredient_id)
+    if not success:
+        return jsonify({"error": "Ingredient not found"}), 404
 
     return jsonify({}), 204
