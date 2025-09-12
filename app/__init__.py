@@ -2,12 +2,13 @@ import os
 import subprocess
 from typing import Any, Dict, Optional
 
-from flask import Flask, render_template
+from flask import Flask
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
+from app.error_handlers import register_error_handlers
 from config import settings
 
 # Extensions are initialized here but not attached to an app
@@ -71,15 +72,8 @@ def create_app(config_override: Optional[Dict[str, Any]] = None) -> Flask:
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp)
 
-    # Register error handlers on the app
-    @app.errorhandler(404)
-    def not_found_error(error: Any) -> Any:
-        return render_template("404.html"), 404
-
-    @app.errorhandler(500)
-    def internal_error(error: Any) -> Any:
-        db.session.rollback()
-        return render_template("500.html"), 500
+    # Register error handlers
+    register_error_handlers(app)
 
     @app.context_processor
     def inject_git_hash() -> Dict[str, str]:

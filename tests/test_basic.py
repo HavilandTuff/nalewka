@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 
@@ -20,4 +21,6 @@ def test_404_page(client: Any) -> None:
     """
     response = client.get("/a-page-that-does-not-exist")
     assert response.status_code == 404
-    assert b"Page Not Found" in response.data
+    data = json.loads(response.data)
+    assert "error" in data
+    assert data["error"] == "Resource not found"

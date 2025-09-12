@@ -95,12 +95,12 @@ def test_batch_formulas_api(client, session):
     )
     assert response.status_code == 200
     data = json.loads(response.data)
-    assert len(data) == 1
-    assert data[0]["id"] == formula_id
-    assert data[0]["ingredient_id"] == ingredient1.id
-    assert data[0]["ingredient_name"] == "Ingredient 1"
-    assert data[0]["quantity"] == 100.0
-    assert data[0]["unit"] == "ml"
+    assert len(data["data"]) == 1
+    assert data["data"][0]["id"] == formula_id
+    assert data["data"][0]["ingredient_id"] == ingredient1.id
+    assert data["data"][0]["ingredient_name"] == "Ingredient 1"
+    assert data["data"][0]["quantity"] == 100.0
+    assert data["data"][0]["unit"] == "ml"
 
     # Test updating a batch formula
     response = client.put(
@@ -137,4 +137,4 @@ def test_batch_formulas_api(client, session):
     )
     assert response.status_code == 200
     data = json.loads(response.data)
-    assert len(data) == 0
+    assert len(data["data"]) == 0

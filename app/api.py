@@ -3,8 +3,15 @@ from typing import Any
 from flask import Blueprint, jsonify, request
 
 from app import db
-from app.api_utils import error_response, paginated_response, success_response
+from app.api_utils import paginated_response, success_response
 from app.auth_utils import encode_auth_token, token_required
+from app.exceptions import (
+    AuthenticationException,
+    ConflictException,
+    InternalServerErrorException,
+    NotFoundException,
+    ValidationException,
+)
 from app.models import User
 from app.services import (
     create_api_key,
@@ -62,31 +69,32 @@ def api_login() -> Any:
     data = request.get_json()
 
     if not data:
-        response, status_code = error_response("No data provided", 400)
-        return jsonify(response), status_code
+        raise ValidationException("No data provided")
 
     username = data.get("username")
     password = data.get("password")
 
     if not username or not password:
-        response, status_code = error_response(
-            "Username and password are required", 400
+        raise ValidationException(
+            "Username and password are required",
+            details={
+                "missing_fields": [
+                    field for field in ["username", "password"] if not data.get(field)
+                ]
+            },
         )
-        return jsonify(response), status_code
 
     user = db.session.execute(
         db.select(User).filter_by(username=username)
     ).scalar_one_or_none()
 
     if user is None or not user.check_password(password):
-        response, status_code = error_response("Invalid username or password", 401)
-        return jsonify(response), status_code
+        raise AuthenticationException("Invalid username or password")
 
     # Generate auth token
     auth_token = encode_auth_token(user.id)
     if not auth_token:
-        response, status_code = error_response("Failed to generate auth token", 500)
-        return jsonify(response), status_code
+        raise InternalServerErrorException("Failed to generate auth token")
 
     response, status_code = success_response(
         {
@@ -106,15 +114,15 @@ def create_api_key_endpoint(current_user: User) -> Any:
     data = request.get_json()
 
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        raise ValidationException("No data provided")
 
     name = data.get("name")
     if not name:
-        return jsonify({"error": "Name is required"}), 400
+        raise ValidationException("Name is required")
 
     api_key, error = create_api_key(current_user.id, name)
     if error:
-        return jsonify({"error": error}), 500
+        raise InternalServerErrorException(error)
 
     return (
         jsonify(
@@ -165,7 +173,10 @@ def delete_api_key_endpoint(current_user: User, api_key_id: int) -> Any:
     """Delete an API key"""
     success, error = delete_api_key(api_key_id, current_user.id)
     if error:
-        return jsonify({"error": error}), 404 if "not found" in error.lower() else 500
+        if "not found" in error.lower():
+            raise NotFoundException(error)
+        else:
+            raise InternalServerErrorException(error)
 
     return jsonify({}), 204
 
@@ -191,7 +202,7 @@ def update_current_user(current_user: User) -> Any:
     data = request.get_json()
 
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        raise ValidationException("No data provided")
 
     # Update user fields if provided
     if "username" in data:
@@ -201,7 +212,7 @@ def update_current_user(current_user: User) -> Any:
         ).scalar_one_or_none()
 
         if existing_user and existing_user.id != current_user.id:
-            return jsonify({"error": "Username already taken"}), 400
+            raise ConflictException("Username already taken")
 
         current_user.username = data["username"]
 
@@ -212,7 +223,7 @@ def update_current_user(current_user: User) -> Any:
         ).scalar_one_or_none()
 
         if existing_user and existing_user.id != current_user.id:
-            return jsonify({"error": "Email already taken"}), 400
+            raise ConflictException("Email already taken")
 
         current_user.email = data["email"]
 
@@ -231,7 +242,7 @@ def update_current_user(current_user: User) -> Any:
         )
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": f"Failed to update user: {str(e)}"}), 500
+        raise InternalServerErrorException(f"Failed to update user: {str(e)}")
 
 
 @api_v1_bp.route("/liquors", methods=["GET"])
@@ -268,17 +279,20 @@ def create_liquor_endpoint(current_user: User) -> Any:
     """Create a new liquor"""
     data = request.get_json()
     if not data:
-        response, status_code = error_response("No data provided", 400)
-        return jsonify(response), status_code
+        raise ValidationException("No data provided")
 
     name = data.get("name")
     if not name:
-        response, status_code = error_response("Name is required", 400)
-        return jsonify(response), status_code
+        raise ValidationException("Name is required")
 
     description = data.get("description")
 
-    liquor = create_liquor(user_id=current_user.id, name=name, description=description)
+    try:
+        liquor = create_liquor(
+            user_id=current_user.id, name=name, description=description
+        )
+    except ValueError as e:
+        raise ValidationException(str(e))
 
     response, status_code = success_response(
         {
@@ -298,7 +312,7 @@ def get_liquor(current_user: User, liquor_id: int) -> Any:
     """Get details of a specific liquor"""
     liquor = get_liquor_by_id(liquor_id, current_user.id)
     if not liquor:
-        return jsonify({"error": "Liquor not found"}), 404
+        raise NotFoundException("Liquor not found")
 
     return (
         jsonify(
@@ -319,12 +333,15 @@ def update_liquor_endpoint(current_user: User, liquor_id: int) -> Any:
     """Update a specific liquor"""
     data = request.get_json()
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        raise ValidationException("No data provided")
 
-    liquor = update_liquor(liquor_id, current_user.id, data)
+    try:
+        liquor = update_liquor(liquor_id, current_user.id, data)
+    except ValueError as e:
+        raise ValidationException(str(e))
 
     if not liquor:
-        return jsonify({"error": "Liquor not found"}), 404
+        raise NotFoundException("Liquor not found")
 
     return (
         jsonify(
@@ -345,7 +362,7 @@ def delete_liquor_endpoint(current_user: User, liquor_id: int) -> Any:
     """Delete a specific liquor"""
     success = delete_liquor(liquor_id, current_user.id)
     if not success:
-        return jsonify({"error": "Liquor not found"}), 404
+        raise NotFoundException("Liquor not found")
 
     return jsonify({}), 204
 
@@ -376,21 +393,24 @@ def create_ingredient_endpoint(current_user: User) -> Any:
     """Create a new ingredient"""
     data = request.get_json()
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        raise ValidationException("No data provided")
 
     name = data.get("name")
     if not name:
-        return jsonify({"error": "Name is required"}), 400
+        raise ValidationException("Name is required")
 
     # Check if ingredient with this name already exists
     existing_ingredient = get_all_ingredients()
     for ingredient in existing_ingredient:
         if ingredient.name.lower() == name.lower():
-            return jsonify({"error": "Ingredient with this name already exists"}), 400
+            raise ConflictException("Ingredient with this name already exists")
 
     description = data.get("description")
 
-    ingredient = create_ingredient(name=name, description=description)
+    try:
+        ingredient = create_ingredient(name=name, description=description)
+    except ValueError as e:
+        raise ValidationException(str(e))
 
     return (
         jsonify(
@@ -410,7 +430,7 @@ def get_ingredient(ingredient_id: int) -> Any:
     """Get details of a specific ingredient"""
     ingredient = get_ingredient_by_id(ingredient_id)
     if not ingredient:
-        return jsonify({"error": "Ingredient not found"}), 404
+        raise NotFoundException("Ingredient not found")
 
     return (
         jsonify(
@@ -431,12 +451,15 @@ def update_ingredient_endpoint(current_user: User, ingredient_id: int) -> Any:
     """Update a specific ingredient"""
     data = request.get_json()
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        raise ValidationException("No data provided")
 
-    ingredient = update_ingredient(ingredient_id, data)
+    try:
+        ingredient = update_ingredient(ingredient_id, data)
+    except ValueError as e:
+        raise ValidationException(str(e))
 
     if not ingredient:
-        return jsonify({"error": "Ingredient not found"}), 404
+        raise NotFoundException("Ingredient not found")
 
     return (
         jsonify(
@@ -457,7 +480,7 @@ def delete_ingredient_endpoint(current_user: User, ingredient_id: int) -> Any:
     """Delete a specific ingredient"""
     success = delete_ingredient(ingredient_id)
     if not success:
-        return jsonify({"error": "Ingredient not found"}), 404
+        raise NotFoundException("Ingredient not found")
 
     return jsonify({}), 204
 
@@ -469,7 +492,7 @@ def get_batches(current_user: User, liquor_id: int) -> Any:
     # First check if the liquor exists and belongs to the user
     liquor = get_liquor_by_id(liquor_id, current_user.id)
     if not liquor:
-        return jsonify({"error": "Liquor not found"}), 404
+        raise NotFoundException("Liquor not found")
 
     # Get pagination parameters
     page = request.args.get("page", 1, type=int)
@@ -506,11 +529,11 @@ def create_batch_endpoint(current_user: User, liquor_id: int) -> Any:
     # First check if the liquor exists and belongs to the user
     liquor = get_liquor_by_id(liquor_id, current_user.id)
     if not liquor:
-        return jsonify({"error": "Liquor not found"}), 404
+        raise NotFoundException("Liquor not found")
 
     data = request.get_json()
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        raise ValidationException("No data provided")
 
     # Prepare batch data
     batch_data = {
@@ -540,7 +563,7 @@ def create_batch_endpoint(current_user: User, liquor_id: int) -> Any:
                 except ValueError:
                     batch_data["date"] = datetime.fromisoformat(date_str)
         except ValueError:
-            return jsonify({"error": "Invalid date format"}), 400
+            raise ValidationException("Invalid date format")
 
     # If ingredients are provided, use the create_batch_with_ingredients service
     if "ingredients" in data:
@@ -550,7 +573,11 @@ def create_batch_endpoint(current_user: User, liquor_id: int) -> Any:
         batch, error = create_batch(batch_data)
 
     if error:
-        return jsonify({"error": error}), 400
+        # Check if it's a conflict error
+        if "already exists" in error:
+            raise ConflictException(error)
+        else:
+            raise ValidationException(error)
 
     return (
         jsonify(
@@ -575,12 +602,12 @@ def get_batch(current_user: User, batch_id: int) -> Any:
     """Get details of a specific batch"""
     batch = get_batch_by_id(batch_id)
     if not batch:
-        return jsonify({"error": "Batch not found"}), 404
+        raise NotFoundException("Batch not found")
 
     # Check if the batch belongs to a liquor that belongs to the user
     liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
     if not liquor:
-        return jsonify({"error": "Batch not found"}), 404
+        raise NotFoundException("Batch not found")
 
     # Include formulas data in the response
     formulas_data = []
@@ -619,23 +646,27 @@ def update_batch_endpoint(current_user: User, batch_id: int) -> Any:
     """Update a specific batch"""
     batch = get_batch_by_id(batch_id)
     if not batch:
-        return jsonify({"error": "Batch not found"}), 404
+        raise NotFoundException("Batch not found")
 
     # Check if the batch belongs to a liquor that belongs to the user
     liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
     if not liquor:
-        return jsonify({"error": "Batch not found"}), 404
+        raise NotFoundException("Batch not found")
 
     data = request.get_json()
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        raise ValidationException("No data provided")
 
     # Remove liquor_id from data if present, as it shouldn't be updated
     data.pop("liquor_id", None)
 
-    updated_batch = update_batch(batch_id, data)
+    try:
+        updated_batch = update_batch(batch_id, data)
+    except ValueError as e:
+        raise ValidationException(str(e))
+
     if not updated_batch:
-        return jsonify({"error": "Batch not found"}), 404
+        raise NotFoundException("Batch not found")
 
     return (
         jsonify(
@@ -660,16 +691,16 @@ def delete_batch_endpoint(current_user: User, batch_id: int) -> Any:
     """Delete a specific batch"""
     batch = get_batch_by_id(batch_id)
     if not batch:
-        return jsonify({"error": "Batch not found"}), 404
+        raise NotFoundException("Batch not found")
 
     # Check if the batch belongs to a liquor that belongs to the user
     liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
     if not liquor:
-        return jsonify({"error": "Batch not found"}), 404
+        raise NotFoundException("Batch not found")
 
     success = delete_batch(batch_id)
     if not success:
-        return jsonify({"error": "Batch not found"}), 404
+        raise NotFoundException("Batch not found")
 
     return jsonify({}), 204
 
@@ -680,16 +711,16 @@ def update_batch_bottles_endpoint(current_user: User, batch_id: int) -> Any:
     """Update bottle information for a batch"""
     batch = get_batch_by_id(batch_id)
     if not batch:
-        return jsonify({"error": "Batch not found"}), 404
+        raise NotFoundException("Batch not found")
 
     # Check if the batch belongs to a liquor that belongs to the user
     liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
     if not liquor:
-        return jsonify({"error": "Batch not found"}), 404
+        raise NotFoundException("Batch not found")
 
     data = request.get_json()
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        raise ValidationException("No data provided")
 
     # Prepare data for the service function
     form_data = {
@@ -700,7 +731,11 @@ def update_batch_bottles_endpoint(current_user: User, batch_id: int) -> Any:
 
     updated_batch, error = update_batch_bottles(batch_id, current_user.id, form_data)
     if error:
-        return jsonify({"error": error}), 400
+        # Check if it's a conflict error
+        if "already exists" in error:
+            raise ConflictException(error)
+        else:
+            raise ValidationException(error)
 
     return (
         jsonify(
@@ -726,11 +761,11 @@ def get_batch_formulas(current_user: User, batch_id: int) -> Any:
     # First check if the batch exists and belongs to a liquor that belongs to the user
     batch = get_batch_by_id(batch_id)
     if not batch:
-        return jsonify({"error": "Batch not found"}), 404
+        raise NotFoundException("Batch not found")
 
     liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
     if not liquor:
-        return jsonify({"error": "Batch not found"}), 404
+        raise NotFoundException("Batch not found")
 
     # Get pagination parameters
     page = request.args.get("page", 1, type=int)
@@ -764,34 +799,40 @@ def create_batch_formula_endpoint(current_user: User, batch_id: int) -> Any:
     # First check if the batch exists and belongs to a liquor that belongs to the user
     batch = get_batch_by_id(batch_id)
     if not batch:
-        return jsonify({"error": "Batch not found"}), 404
+        raise NotFoundException("Batch not found")
 
     liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
     if not liquor:
-        return jsonify({"error": "Batch not found"}), 404
+        raise NotFoundException("Batch not found")
 
     data = request.get_json()
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        raise ValidationException("No data provided")
 
     ingredient_id = data.get("ingredient_id")
     quantity = data.get("quantity")
     unit = data.get("unit")
 
     if not ingredient_id or not quantity or not unit:
-        return (
-            jsonify({"error": "ingredient_id, quantity, and unit are all required"}),
-            400,
+        raise ValidationException(
+            "ingredient_id, quantity, and unit are all required",
+            details={
+                "missing_fields": [
+                    field
+                    for field in ["ingredient_id", "quantity", "unit"]
+                    if not data.get(field)
+                ]
+            },
         )
 
     try:
         quantity = float(quantity)
     except ValueError:
-        return jsonify({"error": "quantity must be a valid number"}), 400
+        raise ValidationException("quantity must be a valid number")
 
     formula, error = create_batch_formula(batch_id, ingredient_id, quantity, unit)
     if error:
-        return jsonify({"error": error}), 400
+        raise ValidationException(error)
 
     return (
         jsonify(
@@ -815,30 +856,30 @@ def update_batch_formula_endpoint(current_user: User, formula_id: int) -> Any:
     # that belongs to the user
     formula = get_batch_formula_by_id(formula_id)
     if not formula:
-        return jsonify({"error": "Formula not found"}), 404
+        raise NotFoundException("Formula not found")
 
     batch = get_batch_by_id(formula.batch_id)
     if not batch:
-        return jsonify({"error": "Formula not found"}), 404
+        raise NotFoundException("Formula not found")
 
     liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
     if not liquor:
-        return jsonify({"error": "Formula not found"}), 404
+        raise NotFoundException("Formula not found")
 
     data = request.get_json()
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        raise ValidationException("No data provided")
 
     # Convert quantity to float if provided
     if "quantity" in data:
         try:
             data["quantity"] = float(data["quantity"])
         except ValueError:
-            return jsonify({"error": "quantity must be a valid number"}), 400
+            raise ValidationException("quantity must be a valid number")
 
     updated_formula, error = update_batch_formula(formula_id, data)
     if error:
-        return jsonify({"error": error}), 400
+        raise ValidationException(error)
 
     return (
         jsonify(
@@ -862,18 +903,18 @@ def delete_batch_formula_endpoint(current_user: User, formula_id: int) -> Any:
     # that belongs to the user
     formula = get_batch_formula_by_id(formula_id)
     if not formula:
-        return jsonify({"error": "Formula not found"}), 404
+        raise NotFoundException("Formula not found")
 
     batch = get_batch_by_id(formula.batch_id)
     if not batch:
-        return jsonify({"error": "Formula not found"}), 404
+        raise NotFoundException("Formula not found")
 
     liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
     if not liquor:
-        return jsonify({"error": "Formula not found"}), 404
+        raise NotFoundException("Formula not found")
 
     success = delete_batch_formula(formula_id)
     if not success:
-        return jsonify({"error": "Failed to delete formula"}), 500
+        raise InternalServerErrorException("Failed to delete formula")
 
     return jsonify({}), 204

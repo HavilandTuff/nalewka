@@ -238,8 +238,8 @@ def edit_batch_bottles(batch_id: int) -> Any:
 
 
 @main_bp.route("/batch/<int:batch_id>/details")
-@login_required
 @handle_db_errors
+@login_required
 def batch_details(batch_id: int) -> Any:
     batch = batch_repository.get(batch_id)
     if not batch or batch.liquor.user_id != current_user.id:

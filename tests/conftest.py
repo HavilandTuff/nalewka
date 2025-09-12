@@ -45,16 +45,17 @@ def session(db):
     """
     Creates a new database session for a test.
 
-    This fixture begins a nested transaction (SAVEPOINT) before the test runs,
-    and rolls it back after the test completes. This ensures that tests are
-    fully isolated and changes are not persisted to the database, even if the
-    test code calls `db.session.commit()`.
+    This fixture clears all data from the database before each test,
+    ensuring complete isolation.
     """
-    # The db.session object is a scoped_session managed by Flask-SQLAlchemy.
-    # We can start a nested transaction on it.
-    db.session.begin_nested()
+    # Truncate all tables to ensure a clean state
+    for table in reversed(db.metadata.sorted_tables):
+        db.session.execute(table.delete())
+    db.session.commit()
+
     yield db.session
-    db.session.rollback()
+
+    # The session is already clean for the next test
 
 
 @pytest.fixture(scope="function")

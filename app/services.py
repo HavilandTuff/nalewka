@@ -2,6 +2,7 @@ import secrets
 import string
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from app import db
 from app.models import ApiKey, Batch, BatchFormula, Ingredient, Liquor
 from app.repositories import (
     ApiKeyRepository,
@@ -50,18 +51,32 @@ def create_batch_with_ingredients(
                 and ing_data.get("quantity")
                 and ing_data.get("unit")
             ):
-                formulas_data.append(
-                    {
-                        "ingredient_id": ing_data["ingredient"],
-                        "quantity": float(ing_data["quantity"]),
-                        "unit": ing_data["unit"],
-                    }
-                )
+                try:
+                    quantity = float(ing_data["quantity"])
+                    if quantity <= 0:
+                        return (
+                            None,
+                            f"Ingredient quantity must be positive, got {quantity}",
+                        )
+
+                    formulas_data.append(
+                        {
+                            "ingredient_id": int(ing_data["ingredient"]),
+                            "quantity": quantity,
+                            "unit": str(ing_data["unit"]),
+                        }
+                    )
+                except ValueError as e:
+                    return None, f"Invalid ingredient data: {str(e)}"
 
         if not formulas_data:
             return None, "At least one valid ingredient must be added."
 
         return batch_repository.create_with_formulas(batch_data, formulas_data)
+    except KeyError as e:
+        return None, f"Missing required field: {str(e)}"
+    except ValueError as e:
+        return None, f"Invalid data format: {str(e)}"
     except Exception as e:
         return None, f"An unexpected error occurred: {str(e)}"
 
@@ -80,13 +95,36 @@ def update_batch_bottles(
         return None, "You do not have permission to edit this batch."
 
     try:
-        bottle_volume_ml: float = form_data["bottle_volume"]  # type: ignore
-        if form_data["bottle_volume_unit"] == "l":  # type: ignore
-            bottle_volume_ml *= 1000
+        # Validate bottle count
+        bottle_count = form_data.get("bottle_count")
+        if bottle_count is not None:
+            try:
+                bottle_count = int(bottle_count)
+                if bottle_count < 0:
+                    return None, "Bottle count must be non-negative"
+            except (ValueError, TypeError):
+                return None, "Bottle count must be a valid integer"
 
-        batch.bottle_count = form_data["bottle_count"]  # type: ignore
-        batch.bottle_volume = bottle_volume_ml
-        batch.bottle_volume_unit = "ml"
+        # Validate bottle volume
+        bottle_volume = form_data.get("bottle_volume")
+        if bottle_volume is not None:
+            try:
+                bottle_volume = float(bottle_volume)
+                if bottle_volume < 0:
+                    return None, "Bottle volume must be non-negative"
+            except (ValueError, TypeError):
+                return None, "Bottle volume must be a valid number"
+
+        # Update batch fields
+        if bottle_count is not None:
+            batch.bottle_count = bottle_count
+
+        if bottle_volume is not None:
+            bottle_volume_ml: float = bottle_volume
+            if form_data.get("bottle_volume_unit") == "l":
+                bottle_volume_ml *= 1000
+            batch.bottle_volume = bottle_volume_ml
+            batch.bottle_volume_unit = "ml"
 
         batch_repository.commit()
         return batch, None
@@ -164,7 +202,20 @@ def get_paginated_liquors_for_user(
 
 def create_liquor(user_id: int, name: str, description: Optional[str] = None) -> Liquor:
     """Service to create a new liquor"""
-    return liquor_repository.create(name=name, user_id=user_id, description=description)
+    # Validate name
+    if not name or not name.strip():
+        raise ValueError("Liquor name cannot be empty")
+
+    # Check if liquor with this name already exists for this user
+    existing_liquor = (
+        db.session.query(Liquor).filter_by(user_id=user_id, name=name).first()
+    )
+    if existing_liquor:
+        raise ValueError("Liquor with this name already exists for this user")
+
+    return liquor_repository.create(
+        name=name.strip(), user_id=user_id, description=description
+    )
 
 
 def get_liquor_by_id(liquor_id: int, user_id: int) -> Optional[Liquor]:
@@ -179,6 +230,25 @@ def update_liquor(
     liquor = get_liquor_by_id(liquor_id, user_id)
     if not liquor:
         return None
+
+    # Validate name if provided
+    if "name" in data:
+        name = data["name"]
+        if not name or not name.strip():
+            raise ValueError("Liquor name cannot be empty")
+
+        # Check if liquor with this name already exists for this user.
+        existing_liquor = (
+            db.session.query(Liquor)
+            .filter(
+                Liquor.user_id == user_id,
+                Liquor.name == name,
+                Liquor.id != liquor_id,
+            )
+            .first()
+        )
+        if existing_liquor:
+            raise ValueError("Liquor with this name already exists for this user")
 
     liquor_repository.update(liquor, data)
     return liquor
@@ -201,7 +271,16 @@ def get_all_ingredients() -> List[Ingredient]:
 
 def create_ingredient(name: str, description: Optional[str] = None) -> Ingredient:
     """Service to create a new ingredient"""
-    return ingredient_repository.create(name=name, description=description)
+    # Validate name
+    if not name or not name.strip():
+        raise ValueError("Ingredient name cannot be empty")
+
+    # Check if ingredient with this name already exists
+    existing_ingredient = ingredient_repository.get_by_name(name)
+    if existing_ingredient:
+        raise ValueError("Ingredient with this name already exists")
+
+    return ingredient_repository.create(name=name.strip(), description=description)
 
 
 def get_ingredient_by_id(ingredient_id: int) -> Optional[Ingredient]:
@@ -214,6 +293,17 @@ def update_ingredient(ingredient_id: int, data: Dict[str, Any]) -> Optional[Ingr
     ingredient = get_ingredient_by_id(ingredient_id)
     if not ingredient:
         return None
+
+    # Validate name if provided
+    if "name" in data:
+        name = data["name"]
+        if not name or not name.strip():
+            raise ValueError("Ingredient name cannot be empty")
+
+        # Check if ingredient with this name already exists.
+        existing_ingredient = ingredient_repository.get_by_name(name)
+        if existing_ingredient and existing_ingredient.id != ingredient_id:
+            raise ValueError("Ingredient with this name already exists")
 
     ingredient_repository.update(ingredient, data)
     return ingredient
@@ -243,6 +333,27 @@ def get_paginated_batches_for_liquor(
 
 def create_batch(batch_data: dict) -> Tuple[Optional[Batch], Optional[str]]:
     """Service to create a new batch"""
+    # Validate required fields
+    if "liquor_id" not in batch_data:
+        return None, "Liquor ID is required"
+
+    # Validate numeric fields
+    if "bottle_count" in batch_data:
+        try:
+            bottle_count = int(batch_data["bottle_count"])
+            if bottle_count < 0:
+                return None, "Bottle count must be non-negative"
+        except (ValueError, TypeError):
+            return None, "Bottle count must be a valid integer"
+
+    if "bottle_volume" in batch_data:
+        try:
+            bottle_volume = float(batch_data["bottle_volume"])
+            if bottle_volume < 0:
+                return None, "Bottle volume must be non-negative"
+        except (ValueError, TypeError):
+            return None, "Bottle volume must be a valid number"
+
     return batch_repository.create(batch_data)
 
 
@@ -256,6 +367,23 @@ def update_batch(batch_id: int, data: Dict[str, Any]) -> Optional[Batch]:
     batch = get_batch_by_id(batch_id)
     if not batch:
         return None
+
+    # Validate numeric fields if provided
+    if "bottle_count" in data:
+        try:
+            bottle_count = int(data["bottle_count"])
+            if bottle_count < 0:
+                raise ValueError("Bottle count must be non-negative")
+        except (ValueError, TypeError):
+            raise ValueError("Bottle count must be a valid integer")
+
+    if "bottle_volume" in data:
+        try:
+            bottle_volume = float(data["bottle_volume"])
+            if bottle_volume < 0:
+                raise ValueError("Bottle volume must be non-negative")
+        except (ValueError, TypeError):
+            raise ValueError("Bottle volume must be a valid number")
 
     batch_repository.update(batch, data)
     return batch
@@ -297,6 +425,10 @@ def create_batch_formula(
     if not ingredient:
         return None, "Ingredient not found."
 
+    # Validate quantity
+    if quantity <= 0:
+        return None, f"Quantity must be positive, got {quantity}"
+
     return batch_formula_repository.create(batch_id, ingredient_id, quantity, unit)
 
 
@@ -318,6 +450,15 @@ def update_batch_formula(
         ingredient = get_ingredient_by_id(data["ingredient_id"])
         if not ingredient:
             return None, "Ingredient not found."
+
+    # Validate quantity if provided
+    if "quantity" in data:
+        try:
+            quantity = float(data["quantity"])
+            if quantity <= 0:
+                return None, f"Quantity must be positive, got {quantity}"
+        except (ValueError, TypeError):
+            return None, "Quantity must be a valid number"
 
     return batch_formula_repository.update(formula, data)
 
