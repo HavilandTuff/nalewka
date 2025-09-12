@@ -1,0 +1,1298 @@
+openapi: 3.0.3
+info:
+  title: Nalewka API
+  description: API for managing homemade liquor recipes and batches
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@nalewka.example.com
+
+servers:
+  - url: https://your-nalewka-app.com/api/v1
+    description: Production server
+  - url: http://localhost:5000/api/v1
+    description: Development server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from the /auth/login endpoint
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the user
+        username:
+          type: string
+          description: Username of the user
+        email:
+          type: string
+          format: email
+          description: Email address of the user
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the user was created
+      required:
+        - id
+        - username
+        - email
+        - created_at
+
+    AuthToken:
+      type: object
+      properties:
+        auth_token:
+          type: string
+          description: JWT authentication token
+        user_id:
+          type: integer
+          description: ID of the authenticated user
+        message:
+          type: string
+          description: Success message
+      required:
+        - auth_token
+        - user_id
+
+    Liquor:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the liquor
+        name:
+          type: string
+          description: Name of the liquor
+        description:
+          type: string
+          description: Description of the liquor
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the liquor was created
+      required:
+        - id
+        - name
+        - created_at
+
+    Ingredient:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the ingredient
+        name:
+          type: string
+          description: Name of the ingredient
+        description:
+          type: string
+          description: Description of the ingredient
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the ingredient was created
+      required:
+        - id
+        - name
+        - created_at
+
+    Batch:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the batch
+        date:
+          type: string
+          format: date-time
+          description: Date when the batch was created
+        description:
+          type: string
+          description: Description of the batch
+        bottle_count:
+          type: integer
+          description: Number of bottles in the batch
+        bottle_volume:
+          type: number
+          format: float
+          description: Volume of each bottle
+        bottle_volume_unit:
+          type: string
+          description: Unit of measurement for bottle volume
+        total_volume:
+          type: number
+          format: float
+          description: Total volume of the batch in milliliters
+        ingredient_count:
+          type: integer
+          description: Number of ingredients in the batch
+      required:
+        - id
+        - date
+        - description
+
+    BatchFormula:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the formula
+        ingredient_id:
+          type: integer
+          description: ID of the ingredient
+        ingredient_name:
+          type: string
+          description: Name of the ingredient
+        quantity:
+          type: number
+          format: float
+          description: Quantity of the ingredient
+        unit:
+          type: string
+          description: Unit of measurement for the ingredient
+      required:
+        - id
+        - ingredient_id
+        - ingredient_name
+        - quantity
+        - unit
+
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the API key
+        name:
+          type: string
+          description: Name of the API key
+        key:
+          type: string
+          description: The actual API key
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the API key was created
+        last_used:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when the API key was last used
+        is_active:
+          type: boolean
+          description: Whether the API key is active
+      required:
+        - id
+        - name
+        - key
+        - created_at
+        - is_active
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: Current page number
+        per_page:
+          type: integer
+          description: Number of items per page
+        total:
+          type: integer
+          description: Total number of items
+        pages:
+          type: integer
+          description: Total number of pages
+      required:
+        - page
+        - per_page
+        - total
+        - pages
+
+    PaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+          description: Array of data items
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        message:
+          type: string
+          description: Optional message
+      required:
+        - data
+        - pagination
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        status_code:
+          type: integer
+          description: HTTP status code
+        details:
+          type: object
+          description: Additional error details
+      required:
+        - error
+        - status_code
+
+  parameters:
+    PaginationPage:
+      name: page
+      in: query
+      description: Page number for pagination
+      required: false
+      schema:
+        type: integer
+        default: 1
+    PaginationPerPage:
+      name: per_page
+      in: query
+      description: Number of items per page
+      required: false
+      schema:
+        type: integer
+        default: 10
+        maximum: 100
+
+security:
+  - bearerAuth: []
+
+paths:
+  /:
+    get:
+      summary: API root
+      description: Welcome message for the API
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Welcome message
+                  version:
+                    type: string
+                    description: API version
+                  documentation:
+                    type: string
+                    description: Link to API documentation
+                required:
+                  - message
+                  - version
+                  - documentation
+
+  /auth/login:
+    post:
+      summary: Authenticate user
+      description: Generate authentication token for a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: Username
+                password:
+                  type: string
+                  description: Password
+              required:
+                - username
+                - password
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthToken'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/api-keys:
+    post:
+      summary: Create API key
+      description: Create a new API key for the current user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name for the API key
+              required:
+                - name
+      responses:
+        '201':
+          description: API key created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKey'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: List API keys
+      description: List all API keys for the current user
+      parameters:
+        - $ref: '#/components/parameters/PaginationPage'
+        - $ref: '#/components/parameters/PaginationPerPage'
+      responses:
+        '200':
+          description: Successful response with paginated API keys
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                            created_at:
+                              type: string
+                              format: date-time
+                            last_used:
+                              type: string
+                              format: date-time
+                              nullable: true
+                            is_active:
+                              type: boolean
+                          required:
+                            - id
+                            - name
+                            - created_at
+                            - is_active
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/api-keys/{api_key_id}:
+    delete:
+      summary: Delete API key
+      description: Delete an API key
+      parameters:
+        - name: api_key_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: API key deleted successfully
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: API key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/me:
+    get:
+      summary: Get current user
+      description: Retrieve profile information for the current user
+      responses:
+        '200':
+          description: Successful response with user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update current user
+      description: Update profile information for the current user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: New username
+                email:
+                  type: string
+                  format: email
+                  description: New email address
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/User'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        description: Success message
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict (username or email already taken)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /liquors:
+    get:
+      summary: List liquors
+      description: Retrieve a paginated list of liquors for the current user
+      parameters:
+        - $ref: '#/components/parameters/PaginationPage'
+        - $ref: '#/components/parameters/PaginationPerPage'
+      responses:
+        '200':
+          description: Successful response with paginated liquors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create liquor
+      description: Create a new liquor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name of the liquor
+                description:
+                  type: string
+                  description: Description of the liquor
+              required:
+                - name
+      responses:
+        '201':
+          description: Liquor created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Liquor'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /liquors/{liquor_id}:
+    get:
+      summary: Get liquor
+      description: Retrieve details of a specific liquor
+      parameters:
+        - name: liquor_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response with liquor details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Liquor'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Liquor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update liquor
+      description: Update a specific liquor
+      parameters:
+        - name: liquor_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name of the liquor
+                description:
+                  type: string
+                  description: Description of the liquor
+      responses:
+        '200':
+          description: Liquor updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Liquor'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Liquor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete liquor
+      description: Delete a specific liquor
+      parameters:
+        - name: liquor_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Liquor deleted successfully
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Liquor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /ingredients:
+    get:
+      summary: List ingredients
+      description: Retrieve a list of all ingredients
+      responses:
+        '200':
+          description: Successful response with ingredients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ingredient'
+    post:
+      summary: Create ingredient
+      description: Create a new ingredient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name of the ingredient
+                description:
+                  type: string
+                  description: Description of the ingredient
+              required:
+                - name
+      responses:
+        '201':
+          description: Ingredient created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict (ingredient already exists)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /ingredients/{ingredient_id}:
+    get:
+      summary: Get ingredient
+      description: Retrieve details of a specific ingredient
+      parameters:
+        - name: ingredient_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response with ingredient details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+        '404':
+          description: Ingredient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update ingredient
+      description: Update a specific ingredient
+      parameters:
+        - name: ingredient_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name of the ingredient
+                description:
+                  type: string
+                  description: Description of the ingredient
+      responses:
+        '200':
+          description: Ingredient updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Ingredient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete ingredient
+      description: Delete a specific ingredient
+      parameters:
+        - name: ingredient_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Ingredient deleted successfully
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Ingredient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /liquors/{liquor_id}/batches:
+    get:
+      summary: List batches
+      description: Retrieve a paginated list of batches for a specific liquor
+      parameters:
+        - name: liquor_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/PaginationPage'
+        - $ref: '#/components/parameters/PaginationPerPage'
+      responses:
+        '200':
+          description: Successful response with paginated batches
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Liquor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create batch
+      description: Create a new batch for a specific liquor
+      parameters:
+        - name: liquor_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                  format: date
+                  description: Date of the batch
+                description:
+                  type: string
+                  description: Description of the batch
+                bottle_count:
+                  type: integer
+                  description: Number of bottles in the batch
+                bottle_volume:
+                  type: number
+                  format: float
+                  description: Volume of each bottle
+                bottle_volume_unit:
+                  type: string
+                  description: Unit of measurement for bottle volume
+                ingredients:
+                  type: array
+                  description: List of ingredients for the batch
+                  items:
+                    type: object
+                    properties:
+                      ingredient_id:
+                        type: integer
+                      quantity:
+                        type: number
+                        format: float
+                      unit:
+                        type: string
+                    required:
+                      - ingredient_id
+                      - quantity
+                      - unit
+              required:
+                - description
+      responses:
+        '201':
+          description: Batch created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Batch'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Liquor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict (batch already exists)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /batches/{batch_id}:
+    get:
+      summary: Get batch
+      description: Retrieve details of a specific batch
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response with batch details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Batch'
+                  - type: object
+                    properties:
+                      formulas:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BatchFormula'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Batch not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update batch
+      description: Update a specific batch
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                  format: date
+                  description: Date of the batch
+                description:
+                  type: string
+                  description: Description of the batch
+                bottle_count:
+                  type: integer
+                  description: Number of bottles in the batch
+                bottle_volume:
+                  type: number
+                  format: float
+                  description: Volume of each bottle
+                bottle_volume_unit:
+                  type: string
+                  description: Unit of measurement for bottle volume
+      responses:
+        '200':
+          description: Batch updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Batch'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Batch not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete batch
+      description: Delete a specific batch
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Batch deleted successfully
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Batch not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /batches/{batch_id}/bottles:
+    put:
+      summary: Update batch bottles
+      description: Update bottle information for a specific batch
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bottle_count:
+                  type: integer
+                  description: Number of bottles in the batch
+                bottle_volume:
+                  type: number
+                  format: float
+                  description: Volume of each bottle
+                bottle_volume_unit:
+                  type: string
+                  description: Unit of measurement for bottle volume
+              required:
+                - bottle_count
+                - bottle_volume
+      responses:
+        '200':
+          description: Batch bottles updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Batch'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Batch not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict (batch already exists)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /batches/{batch_id}/formulas:
+    get:
+      summary: List batch formulas
+      description: Retrieve a paginated list of formulas for a specific batch
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/PaginationPage'
+        - $ref: '#/components/parameters/PaginationPerPage'
+      responses:
+        '200':
+          description: Successful response with paginated formulas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Batch not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create batch formula
+      description: Add a formula to a specific batch
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ingredient_id:
+                  type: integer
+                  description: ID of the ingredient
+                quantity:
+                  type: number
+                  format: float
+                  description: Quantity of the ingredient
+                unit:
+                  type: string
+                  description: Unit of measurement for the ingredient
+              required:
+                - ingredient_id
+                - quantity
+                - unit
+      responses:
+        '201':
+          description: Formula created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchFormula'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Batch not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /formulas/{formula_id}:
+    put:
+      summary: Update batch formula
+      description: Update a specific batch formula
+      parameters:
+        - name: formula_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: number
+                  format: float
+                  description: Quantity of the ingredient
+                unit:
+                  type: string
+                  description: Unit of measurement for the ingredient
+      responses:
+        '200':
+          description: Formula updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchFormula'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Formula not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete batch formula
+      description: Delete a specific batch formula
+      parameters:
+        - name: formula_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Formula deleted successfully
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Formula not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

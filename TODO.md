@@ -46,7 +46,7 @@ This document outlines the plan for refactoring the `nalewka` project to improve
     - **Authentication & Authorization:**
         - [x] Implement token-based authentication for API access
         - [x] Create API key management for third-party integrations
-        - [ ] Ensure proper permission checks for all API endpoints
+        - [x] Ensure proper permission checks for all API endpoints
     - **Core API Endpoints:**
         - [x] **Users API:**
             - [x] `GET /api/v1/users/me` - Get current user profile
@@ -79,11 +79,11 @@ This document outlines the plan for refactoring the `nalewka` project to improve
         - [x] Implement consistent JSON response format for all API endpoints
         - [x] Use appropriate HTTP status codes (200, 201, 400, 401, 403, 404, 500)
         - [x] Add pagination for list endpoints
-        - [ ] Implement proper error responses with detailed messages
+        - [x] Implement proper error responses with detailed messages
     - **Documentation:**
-        - [ ] Create API documentation using OpenAPI/Swagger
-        - [ ] Add examples for all endpoints
-        - [ ] Document authentication requirements
+        - [x] Create API documentation using OpenAPI/Swagger
+        - [x] Add examples for all endpoints
+        - [x] Document authentication requirements
 
-- [ ] **8. Centralize Error Handling:**
-    - [ ] Implement custom exception classes and a centralized error handler for consistent JSON error responses.
+- [x] **8. Centralize Error Handling:**
+    - [x] Implement custom exception classes and a centralized error handler for consistent JSON error responses.

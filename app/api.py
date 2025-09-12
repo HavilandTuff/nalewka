@@ -1,6 +1,6 @@
 from typing import Any
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, render_template, request
 
 from app import db
 from app.api_utils import paginated_response, success_response
@@ -58,9 +58,15 @@ def api_root() -> Any:
         {
             "message": "Welcome to the Nalewka API",
             "version": "1.0",
-            "documentation": "/api/docs",  # Placeholder for future documentation
+            "documentation": "/api/docs",
         }
     )
+
+
+@api_v1_bp.route("/docs")
+def api_docs() -> Any:
+    """API documentation endpoint"""
+    return render_template("swaggerui.html")
 
 
 @api_v1_bp.route("/auth/login", methods=["POST"])

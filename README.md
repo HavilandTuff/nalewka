@@ -174,11 +174,21 @@ Make sure these are set in your Render service:
 nalewka/
 ├── app/
 │   ├── __init__.py          # Flask app initialization
+│   ├── api.py               # API endpoints
+│   ├── api_utils.py         # API utility functions
+│   ├── auth_utils.py        # Authentication utilities
+│   ├── error_handlers.py    # Centralized error handlers
+│   ├── exceptions.py        # Custom exception classes
 │   ├── models.py            # Database models
 │   ├── forms.py             # WTForms definitions
 │   ├── routes.py            # Application routes
+│   ├── services.py          # Business logic services
+│   ├── repositories.py      # Data access repositories
 │   └── templates/           # HTML templates
 ├── migrations/              # Database migrations
+├── docs/                   # API documentation
+│   ├── api_documentation.yaml  # OpenAPI/Swagger specification
+│   └── API_DOCUMENTATION.md    # Documentation guide
 ├── config.py               # Configuration settings
 ├── nalewka.py              # Application entry point
 ├── manage.py               # Management script
@@ -207,7 +217,41 @@ flask db migrate -m "Description of changes"
 flask db upgrade
 ```
 
-## Security Features
+## API
+
+The Nalewka application provides a comprehensive REST API for programmatic access to all features. The API is versioned and follows REST principles with consistent error handling and response formats.
+
+### API Documentation
+
+Interactive API documentation is available at `/api/docs` when the application is running. The documentation includes:
+
+- Detailed descriptions of all endpoints
+- Request/response schemas
+- Example requests and responses
+- Authentication requirements
+
+The raw OpenAPI/Swagger specification is available in the `docs/api_documentation.yaml` file. For more details, see `docs/API.md`.
+
+### Authentication
+
+Most API endpoints require authentication using a JWT token. To obtain a token:
+
+1. POST to `/api/v1/auth/login` with username and password
+2. Use the returned token in the Authorization header:
+   ```
+   Authorization: Bearer <your-token>
+   ```
+
+### API Endpoints
+
+The API includes endpoints for:
+
+- User management (`/api/v1/users`)
+- Liquor management (`/api/v1/liquors`)
+- Ingredient management (`/api/v1/ingredients`)
+- Batch management (`/api/v1/batches`)
+- Formula management (`/api/v1/formulas`)
+- API key management (`/api/v1/auth/api-keys`)
 
 - **Password Hashing**: Passwords are securely hashed using Werkzeug
 - **CSRF Protection**: All forms include CSRF tokens
