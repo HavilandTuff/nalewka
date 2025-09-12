@@ -78,7 +78,7 @@ This document outlines the plan for refactoring the `nalewka` project to improve
     - **Response Standards:**
         - [x] Implement consistent JSON response format for all API endpoints
         - [x] Use appropriate HTTP status codes (200, 201, 400, 401, 403, 404, 500)
-        - [ ] Add pagination for list endpoints
+        - [x] Add pagination for list endpoints
         - [ ] Implement proper error responses with detailed messages
     - **Documentation:**
         - [ ] Create API documentation using OpenAPI/Swagger

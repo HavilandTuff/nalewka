@@ -44,6 +44,23 @@ class ApiKeyRepository(BaseRepository):
         ).all()
         return list(result)
 
+    def get_paginated_for_user(
+        self, user_id: int, page: int = 1, per_page: int = 10
+    ) -> Tuple[List[ApiKey], int]:
+        """Get paginated API keys for a user"""
+        query = db.select(ApiKey).where(ApiKey.user_id == user_id)
+
+        # Get total count
+        count_query = sa.select(sa.func.count()).select_from(query.subquery())
+        total = db.session.scalar(count_query) or 0
+
+        # Apply pagination
+        offset = (page - 1) * per_page
+        query = query.offset(offset).limit(per_page)
+
+        result = db.session.scalars(query).all()
+        return list(result), total
+
     def get_by_id_and_user(self, api_key_id: int, user_id: int) -> Optional[ApiKey]:
         result = db.session.scalar(
             db.select(ApiKey).where(ApiKey.id == api_key_id, ApiKey.user_id == user_id)
@@ -64,6 +81,23 @@ class LiquorRepository(BaseRepository):
             db.select(Liquor).where(Liquor.user_id == user_id)
         ).all()
         return list(result)
+
+    def get_paginated_for_user(
+        self, user_id: int, page: int = 1, per_page: int = 10
+    ) -> Tuple[List[Liquor], int]:
+        """Get paginated liquors for a user"""
+        query = db.select(Liquor).where(Liquor.user_id == user_id)
+
+        # Get total count
+        count_query = sa.select(sa.func.count()).select_from(query.subquery())
+        total = db.session.scalar(count_query) or 0
+
+        # Apply pagination
+        offset = (page - 1) * per_page
+        query = query.offset(offset).limit(per_page)
+
+        result = db.session.scalars(query).all()
+        return list(result), total
 
     def user_owns_liquor(self, liquor_id: int, user_id: int) -> bool:
         return (
@@ -118,6 +152,27 @@ class BatchRepository(BaseRepository):
             .order_by(Batch.date.desc())
         ).all()
         return list(result)
+
+    def get_paginated_for_liquor(
+        self, liquor_id: int, page: int = 1, per_page: int = 10
+    ) -> Tuple[List[Batch], int]:
+        """Get paginated batches for a liquor"""
+        query = (
+            db.select(Batch)
+            .where(Batch.liquor_id == liquor_id)
+            .order_by(Batch.date.desc())
+        )
+
+        # Get total count
+        count_query = sa.select(sa.func.count()).select_from(query.subquery())
+        total = db.session.scalar(count_query) or 0
+
+        # Apply pagination
+        offset = (page - 1) * per_page
+        query = query.offset(offset).limit(per_page)
+
+        result = db.session.scalars(query).all()
+        return list(result), total
 
     def create_with_formulas(
         self, batch_data: dict, formulas_data: List[dict]
@@ -216,6 +271,27 @@ class BatchFormulaRepository(BaseRepository):
             .options(joinedload(BatchFormula.ingredient))
         ).all()
         return list(result)
+
+    def get_paginated_for_batch(
+        self, batch_id: int, page: int = 1, per_page: int = 10
+    ) -> Tuple[List[BatchFormula], int]:
+        """Get paginated formulas for a batch"""
+        query = (
+            db.select(BatchFormula)
+            .where(BatchFormula.batch_id == batch_id)
+            .options(joinedload(BatchFormula.ingredient))
+        )
+
+        # Get total count
+        count_query = sa.select(sa.func.count()).select_from(query.subquery())
+        total = db.session.scalar(count_query) or 0
+
+        # Apply pagination
+        offset = (page - 1) * per_page
+        query = query.offset(offset).limit(per_page)
+
+        result = db.session.scalars(query).all()
+        return list(result), total
 
     def get(self, formula_id: int) -> Optional[BatchFormula]:
         result = (

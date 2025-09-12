@@ -122,6 +122,13 @@ def get_api_keys_for_user(user_id: int) -> List[ApiKey]:
     return api_key_repository.get_all_for_user(user_id)
 
 
+def get_paginated_api_keys_for_user(
+    user_id: int, page: int = 1, per_page: int = 10
+) -> Tuple[List[ApiKey], int]:
+    """Service to get paginated API keys for a user"""
+    return api_key_repository.get_paginated_for_user(user_id, page, per_page)
+
+
 def get_api_key_by_id_and_user(api_key_id: int, user_id: int) -> Optional[ApiKey]:
     """Service to get an API key by ID for a specific user"""
     return api_key_repository.get_by_id_and_user(api_key_id, user_id)
@@ -146,6 +153,13 @@ def delete_api_key(api_key_id: int, user_id: int) -> Tuple[bool, Optional[str]]:
 def get_liquors_for_user(user_id: int) -> List[Liquor]:
     """Service to get all liquors for a user"""
     return liquor_repository.get_all_for_user(user_id)
+
+
+def get_paginated_liquors_for_user(
+    user_id: int, page: int = 1, per_page: int = 10
+) -> Tuple[List[Liquor], int]:
+    """Service to get paginated liquors for a user"""
+    return liquor_repository.get_paginated_for_user(user_id, page, per_page)
 
 
 def create_liquor(user_id: int, name: str, description: Optional[str] = None) -> Liquor:
@@ -220,6 +234,13 @@ def get_batches_for_liquor(liquor_id: int) -> List[Batch]:
     return batch_repository.get_all_for_liquor(liquor_id)
 
 
+def get_paginated_batches_for_liquor(
+    liquor_id: int, page: int = 1, per_page: int = 10
+) -> Tuple[List[Batch], int]:
+    """Service to get paginated batches for a liquor"""
+    return batch_repository.get_paginated_for_liquor(liquor_id, page, per_page)
+
+
 def create_batch(batch_data: dict) -> Tuple[Optional[Batch], Optional[str]]:
     """Service to create a new batch"""
     return batch_repository.create(batch_data)
@@ -253,6 +274,13 @@ def delete_batch(batch_id: int) -> bool:
 def get_formulas_for_batch(batch_id: int) -> List[BatchFormula]:
     """Service to get all formulas for a batch"""
     return batch_formula_repository.get_all_for_batch(batch_id)
+
+
+def get_paginated_formulas_for_batch(
+    batch_id: int, page: int = 1, per_page: int = 10
+) -> Tuple[List[BatchFormula], int]:
+    """Service to get paginated formulas for a batch"""
+    return batch_formula_repository.get_paginated_for_batch(batch_id, page, per_page)
 
 
 def create_batch_formula(

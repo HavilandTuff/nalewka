@@ -3,7 +3,7 @@ from typing import Any
 from flask import Blueprint, jsonify, request
 
 from app import db
-from app.api_utils import error_response, success_response
+from app.api_utils import error_response, paginated_response, success_response
 from app.auth_utils import encode_auth_token, token_required
 from app.models import User
 from app.services import (
@@ -19,14 +19,14 @@ from app.services import (
     delete_ingredient,
     delete_liquor,
     get_all_ingredients,
-    get_api_keys_for_user,
     get_batch_by_id,
     get_batch_formula_by_id,
-    get_batches_for_liquor,
-    get_formulas_for_batch,
     get_ingredient_by_id,
     get_liquor_by_id,
-    get_liquors_for_user,
+    get_paginated_api_keys_for_user,
+    get_paginated_batches_for_liquor,
+    get_paginated_formulas_for_batch,
+    get_paginated_liquors_for_user,
     update_batch,
     update_batch_bottles,
     update_batch_formula,
@@ -134,25 +134,29 @@ def create_api_key_endpoint(current_user: User) -> Any:
 @token_required
 def list_api_keys(current_user: User) -> Any:
     """List all API keys for the current user"""
-    api_keys = get_api_keys_for_user(current_user.id)
+    # Get pagination parameters
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)
 
-    return (
-        jsonify(
-            [
-                {
-                    "id": api_key.id,
-                    "name": api_key.name,
-                    "created_at": api_key.created_at.isoformat(),
-                    "last_used": (
-                        api_key.last_used.isoformat() if api_key.last_used else None
-                    ),
-                    "is_active": api_key.is_active,
-                }
-                for api_key in api_keys
-            ]
-        ),
-        200,
-    )
+    # Ensure per_page is within reasonable limits
+    per_page = min(per_page, 100)  # Max 100 items per page
+
+    api_keys, total = get_paginated_api_keys_for_user(current_user.id, page, per_page)
+
+    # Prepare response data
+    data = [
+        {
+            "id": api_key.id,
+            "name": api_key.name,
+            "created_at": api_key.created_at.isoformat(),
+            "last_used": (api_key.last_used.isoformat() if api_key.last_used else None),
+            "is_active": api_key.is_active,
+        }
+        for api_key in api_keys
+    ]
+
+    response, status_code = paginated_response(data, page, per_page, total)
+    return jsonify(response), status_code
 
 
 @api_v1_bp.route("/auth/api-keys/<int:api_key_id>", methods=["DELETE"])
@@ -234,21 +238,28 @@ def update_current_user(current_user: User) -> Any:
 @token_required
 def get_liquors(current_user: User) -> Any:
     """List all liquors for the current user"""
-    liquors = get_liquors_for_user(current_user.id)
-    return (
-        jsonify(
-            [
-                {
-                    "id": liquor.id,
-                    "name": liquor.name,
-                    "description": liquor.description,
-                    "created_at": liquor.created.isoformat(),
-                }
-                for liquor in liquors
-            ]
-        ),
-        200,
-    )
+    # Get pagination parameters
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)
+
+    # Ensure per_page is within reasonable limits
+    per_page = min(per_page, 100)  # Max 100 items per page
+
+    liquors, total = get_paginated_liquors_for_user(current_user.id, page, per_page)
+
+    # Prepare response data
+    data = [
+        {
+            "id": liquor.id,
+            "name": liquor.name,
+            "description": liquor.description,
+            "created_at": liquor.created.isoformat(),
+        }
+        for liquor in liquors
+    ]
+
+    response, status_code = paginated_response(data, page, per_page, total)
+    return jsonify(response), status_code
 
 
 @api_v1_bp.route("/liquors", methods=["POST"])
@@ -460,25 +471,32 @@ def get_batches(current_user: User, liquor_id: int) -> Any:
     if not liquor:
         return jsonify({"error": "Liquor not found"}), 404
 
-    batches = get_batches_for_liquor(liquor_id)
-    return (
-        jsonify(
-            [
-                {
-                    "id": batch.id,
-                    "date": batch.date.isoformat(),
-                    "description": batch.description,
-                    "bottle_count": batch.bottle_count,
-                    "bottle_volume": batch.bottle_volume,
-                    "bottle_volume_unit": batch.bottle_volume_unit,
-                    "total_volume": batch.total_volume,
-                    "ingredient_count": batch.ingredient_count,
-                }
-                for batch in batches
-            ]
-        ),
-        200,
-    )
+    # Get pagination parameters
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)
+
+    # Ensure per_page is within reasonable limits
+    per_page = min(per_page, 100)  # Max 100 items per page
+
+    batches, total = get_paginated_batches_for_liquor(liquor_id, page, per_page)
+
+    # Prepare response data
+    data = [
+        {
+            "id": batch.id,
+            "date": batch.date.isoformat(),
+            "description": batch.description,
+            "bottle_count": batch.bottle_count,
+            "bottle_volume": batch.bottle_volume,
+            "bottle_volume_unit": batch.bottle_volume_unit,
+            "total_volume": batch.total_volume,
+            "ingredient_count": batch.ingredient_count,
+        }
+        for batch in batches
+    ]
+
+    response, status_code = paginated_response(data, page, per_page, total)
+    return jsonify(response), status_code
 
 
 @api_v1_bp.route("/liquors/<int:liquor_id>/batches", methods=["POST"])
@@ -714,22 +732,29 @@ def get_batch_formulas(current_user: User, batch_id: int) -> Any:
     if not liquor:
         return jsonify({"error": "Batch not found"}), 404
 
-    formulas = get_formulas_for_batch(batch_id)
-    return (
-        jsonify(
-            [
-                {
-                    "id": formula.id,
-                    "ingredient_id": formula.ingredient_id,
-                    "ingredient_name": formula.ingredient.name,
-                    "quantity": formula.quantity,
-                    "unit": formula.unit,
-                }
-                for formula in formulas
-            ]
-        ),
-        200,
-    )
+    # Get pagination parameters
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)
+
+    # Ensure per_page is within reasonable limits
+    per_page = min(per_page, 100)  # Max 100 items per page
+
+    formulas, total = get_paginated_formulas_for_batch(batch_id, page, per_page)
+
+    # Prepare response data
+    data = [
+        {
+            "id": formula.id,
+            "ingredient_id": formula.ingredient_id,
+            "ingredient_name": formula.ingredient.name,
+            "quantity": formula.quantity,
+            "unit": formula.unit,
+        }
+        for formula in formulas
+    ]
+
+    response, status_code = paginated_response(data, page, per_page, total)
+    return jsonify(response), status_code
 
 
 @api_v1_bp.route("/batches/<int:batch_id>/formulas", methods=["POST"])
