@@ -1,7 +1,7 @@
 """Add ApiKey model for API key management
 
 Revision ID: 079bc57431b3
-Revises: 801929404db6
+Revises: f29f222d5976
 Create Date: 2025-09-06 09:12:22.244188
 
 """
@@ -11,7 +11,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "079bc57431b3"
-down_revision = "801929404db6"
+down_revision = "f29f222d5976"
 branch_labels = None
 depends_on = None
 
