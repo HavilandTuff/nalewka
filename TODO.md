@@ -76,8 +76,8 @@ This document outlines the plan for refactoring the `nalewka` project to improve
             - [x] `PUT /api/v1/formulas/<id>` - Update a specific formula
             - [x] `DELETE /api/v1/formulas/<id>` - Delete a specific formula
     - **Response Standards:**
-        - [ ] Implement consistent JSON response format for all API endpoints
-        - [ ] Use appropriate HTTP status codes (200, 201, 400, 401, 403, 404, 500)
+        - [x] Implement consistent JSON response format for all API endpoints
+        - [x] Use appropriate HTTP status codes (200, 201, 400, 401, 403, 404, 500)
         - [ ] Add pagination for list endpoints
         - [ ] Implement proper error responses with detailed messages
     - **Documentation:**

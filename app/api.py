@@ -3,6 +3,7 @@ from typing import Any
 from flask import Blueprint, jsonify, request
 
 from app import db
+from app.api_utils import error_response, success_response
 from app.auth_utils import encode_auth_token, token_required
 from app.models import User
 from app.services import (
@@ -61,36 +62,41 @@ def api_login() -> Any:
     data = request.get_json()
 
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        response, status_code = error_response("No data provided", 400)
+        return jsonify(response), status_code
 
     username = data.get("username")
     password = data.get("password")
 
     if not username or not password:
-        return jsonify({"error": "Username and password are required"}), 400
+        response, status_code = error_response(
+            "Username and password are required", 400
+        )
+        return jsonify(response), status_code
 
     user = db.session.execute(
         db.select(User).filter_by(username=username)
     ).scalar_one_or_none()
 
     if user is None or not user.check_password(password):
-        return jsonify({"error": "Invalid username or password"}), 401
+        response, status_code = error_response("Invalid username or password", 401)
+        return jsonify(response), status_code
 
     # Generate auth token
     auth_token = encode_auth_token(user.id)
     if not auth_token:
-        return jsonify({"error": "Failed to generate auth token"}), 500
+        response, status_code = error_response("Failed to generate auth token", 500)
+        return jsonify(response), status_code
 
-    return (
-        jsonify(
-            {
-                "message": "Successfully logged in",
-                "auth_token": auth_token,
-                "user_id": user.id,
-            }
-        ),
+    response, status_code = success_response(
+        {
+            "auth_token": auth_token,
+            "user_id": user.id,
+        },
+        "Successfully logged in",
         200,
     )
+    return jsonify(response), status_code
 
 
 @api_v1_bp.route("/auth/api-keys", methods=["POST"])
@@ -157,7 +163,7 @@ def delete_api_key_endpoint(current_user: User, api_key_id: int) -> Any:
     if error:
         return jsonify({"error": error}), 404 if "not found" in error.lower() else 500
 
-    return jsonify({"message": "API key deleted successfully"}), 200
+    return jsonify({}), 204
 
 
 @api_v1_bp.route("/users/me", methods=["GET"])
@@ -251,27 +257,28 @@ def create_liquor_endpoint(current_user: User) -> Any:
     """Create a new liquor"""
     data = request.get_json()
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        response, status_code = error_response("No data provided", 400)
+        return jsonify(response), status_code
 
     name = data.get("name")
     if not name:
-        return jsonify({"error": "Name is required"}), 400
+        response, status_code = error_response("Name is required", 400)
+        return jsonify(response), status_code
 
     description = data.get("description")
 
     liquor = create_liquor(user_id=current_user.id, name=name, description=description)
 
-    return (
-        jsonify(
-            {
-                "id": liquor.id,
-                "name": liquor.name,
-                "description": liquor.description,
-                "created_at": liquor.created.isoformat(),
-            }
-        ),
-        201,
+    response, status_code = success_response(
+        {
+            "id": liquor.id,
+            "name": liquor.name,
+            "description": liquor.description,
+            "created_at": liquor.created.isoformat(),
+        },
+        status_code=201,
     )
+    return jsonify(response), status_code
 
 
 @api_v1_bp.route("/liquors/<int:liquor_id>", methods=["GET"])
