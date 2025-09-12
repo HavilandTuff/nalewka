@@ -203,3 +203,65 @@ class IngredientRepository(BaseRepository):
     def delete(self, ingredient: Ingredient) -> None:
         db.session.delete(ingredient)
         db.session.commit()
+
+
+class BatchFormulaRepository(BaseRepository):
+    def __init__(self) -> None:
+        super().__init__(BatchFormula)
+
+    def get_all_for_batch(self, batch_id: int) -> List[BatchFormula]:
+        result = db.session.scalars(
+            db.select(BatchFormula)
+            .where(BatchFormula.batch_id == batch_id)
+            .options(joinedload(BatchFormula.ingredient))
+        ).all()
+        return list(result)
+
+    def get(self, formula_id: int) -> Optional[BatchFormula]:
+        result = (
+            db.session.query(BatchFormula)
+            .options(joinedload(BatchFormula.ingredient))
+            .filter(BatchFormula.id == formula_id)
+            .first()
+        )
+        return cast(Optional[BatchFormula], result)
+
+    def create(
+        self, batch_id: int, ingredient_id: int, quantity: float, unit: str
+    ) -> Tuple[Optional[BatchFormula], Optional[str]]:
+        try:
+            formula = BatchFormula(
+                batch_id=batch_id,
+                ingredient_id=ingredient_id,
+                quantity=quantity,
+                unit=unit,
+            )
+            formula.validate_quantity()
+            self.add(formula)
+            self.commit()
+            return formula, None
+        except Exception as e:
+            self.rollback()
+            return None, str(e)
+
+    def update(
+        self, formula: BatchFormula, data: Dict[str, Any]
+    ) -> Tuple[Optional[BatchFormula], Optional[str]]:
+        try:
+            for key, value in data.items():
+                setattr(formula, key, value)
+            formula.validate_quantity()
+            self.commit()
+            return formula, None
+        except Exception as e:
+            self.rollback()
+            return None, str(e)
+
+    def delete(self, formula: BatchFormula) -> bool:
+        try:
+            db.session.delete(formula)
+            db.session.commit()
+            return True
+        except Exception:
+            self.rollback()
+            return False

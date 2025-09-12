@@ -70,11 +70,11 @@ This document outlines the plan for refactoring the `nalewka` project to improve
             - [x] `PUT /api/v1/batches/<id>` - Update a specific batch
             - [x] `DELETE /api/v1/batches/<id>` - Delete a specific batch
             - [x] `PUT /api/v1/batches/<id>/bottles` - Update bottle information for a batch
-        - [ ] **Batch Formulas API:**
-            - [ ] `GET /api/v1/batches/<batch_id>/formulas` - List all formulas for a batch
-            - [ ] `POST /api/v1/batches/<batch_id>/formulas` - Add a formula to a batch
-            - [ ] `PUT /api/v1/formulas/<id>` - Update a specific formula
-            - [ ] `DELETE /api/v1/formulas/<id>` - Delete a specific formula
+        - [x] **Batch Formulas API:**
+            - [x] `GET /api/v1/batches/<batch_id>/formulas` - List all formulas for a batch
+            - [x] `POST /api/v1/batches/<batch_id>/formulas` - Add a formula to a batch
+            - [x] `PUT /api/v1/formulas/<id>` - Update a specific formula
+            - [x] `DELETE /api/v1/formulas/<id>` - Delete a specific formula
     - **Response Standards:**
         - [ ] Implement consistent JSON response format for all API endpoints
         - [ ] Use appropriate HTTP status codes (200, 201, 400, 401, 403, 404, 500)

@@ -8,22 +8,27 @@ from app.models import User
 from app.services import (
     create_api_key,
     create_batch,
+    create_batch_formula,
     create_batch_with_ingredients,
     create_ingredient,
     create_liquor,
     delete_api_key,
     delete_batch,
+    delete_batch_formula,
     delete_ingredient,
     delete_liquor,
     get_all_ingredients,
     get_api_keys_for_user,
     get_batch_by_id,
+    get_batch_formula_by_id,
     get_batches_for_liquor,
+    get_formulas_for_batch,
     get_ingredient_by_id,
     get_liquor_by_id,
     get_liquors_for_user,
     update_batch,
     update_batch_bottles,
+    update_batch_formula,
     update_ingredient,
     update_liquor,
 )
@@ -687,3 +692,156 @@ def update_batch_bottles_endpoint(current_user: User, batch_id: int) -> Any:
         ),
         200,
     )
+
+
+@api_v1_bp.route("/batches/<int:batch_id>/formulas", methods=["GET"])
+@token_required
+def get_batch_formulas(current_user: User, batch_id: int) -> Any:
+    """List all formulas for a batch"""
+    # First check if the batch exists and belongs to a liquor that belongs to the user
+    batch = get_batch_by_id(batch_id)
+    if not batch:
+        return jsonify({"error": "Batch not found"}), 404
+
+    liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
+    if not liquor:
+        return jsonify({"error": "Batch not found"}), 404
+
+    formulas = get_formulas_for_batch(batch_id)
+    return (
+        jsonify(
+            [
+                {
+                    "id": formula.id,
+                    "ingredient_id": formula.ingredient_id,
+                    "ingredient_name": formula.ingredient.name,
+                    "quantity": formula.quantity,
+                    "unit": formula.unit,
+                }
+                for formula in formulas
+            ]
+        ),
+        200,
+    )
+
+
+@api_v1_bp.route("/batches/<int:batch_id>/formulas", methods=["POST"])
+@token_required
+def create_batch_formula_endpoint(current_user: User, batch_id: int) -> Any:
+    """Add a formula to a batch"""
+    # First check if the batch exists and belongs to a liquor that belongs to the user
+    batch = get_batch_by_id(batch_id)
+    if not batch:
+        return jsonify({"error": "Batch not found"}), 404
+
+    liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
+    if not liquor:
+        return jsonify({"error": "Batch not found"}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    ingredient_id = data.get("ingredient_id")
+    quantity = data.get("quantity")
+    unit = data.get("unit")
+
+    if not ingredient_id or not quantity or not unit:
+        return (
+            jsonify({"error": "ingredient_id, quantity, and unit are all required"}),
+            400,
+        )
+
+    try:
+        quantity = float(quantity)
+    except ValueError:
+        return jsonify({"error": "quantity must be a valid number"}), 400
+
+    formula, error = create_batch_formula(batch_id, ingredient_id, quantity, unit)
+    if error:
+        return jsonify({"error": error}), 400
+
+    return (
+        jsonify(
+            {
+                "id": formula.id,
+                "ingredient_id": formula.ingredient_id,
+                "ingredient_name": formula.ingredient.name,
+                "quantity": formula.quantity,
+                "unit": formula.unit,
+            }
+        ),
+        201,
+    )
+
+
+@api_v1_bp.route("/formulas/<int:formula_id>", methods=["PUT"])
+@token_required
+def update_batch_formula_endpoint(current_user: User, formula_id: int) -> Any:
+    """Update a specific formula"""
+    # First check if the formula exists and belongs to a batch that belongs to a liquor
+    # that belongs to the user
+    formula = get_batch_formula_by_id(formula_id)
+    if not formula:
+        return jsonify({"error": "Formula not found"}), 404
+
+    batch = get_batch_by_id(formula.batch_id)
+    if not batch:
+        return jsonify({"error": "Formula not found"}), 404
+
+    liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
+    if not liquor:
+        return jsonify({"error": "Formula not found"}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    # Convert quantity to float if provided
+    if "quantity" in data:
+        try:
+            data["quantity"] = float(data["quantity"])
+        except ValueError:
+            return jsonify({"error": "quantity must be a valid number"}), 400
+
+    updated_formula, error = update_batch_formula(formula_id, data)
+    if error:
+        return jsonify({"error": error}), 400
+
+    return (
+        jsonify(
+            {
+                "id": updated_formula.id,
+                "ingredient_id": updated_formula.ingredient_id,
+                "ingredient_name": updated_formula.ingredient.name,
+                "quantity": updated_formula.quantity,
+                "unit": updated_formula.unit,
+            }
+        ),
+        200,
+    )
+
+
+@api_v1_bp.route("/formulas/<int:formula_id>", methods=["DELETE"])
+@token_required
+def delete_batch_formula_endpoint(current_user: User, formula_id: int) -> Any:
+    """Delete a specific formula"""
+    # First check if the formula exists and belongs to a batch that belongs to a liquor
+    # that belongs to the user
+    formula = get_batch_formula_by_id(formula_id)
+    if not formula:
+        return jsonify({"error": "Formula not found"}), 404
+
+    batch = get_batch_by_id(formula.batch_id)
+    if not batch:
+        return jsonify({"error": "Formula not found"}), 404
+
+    liquor = get_liquor_by_id(batch.liquor_id, current_user.id)
+    if not liquor:
+        return jsonify({"error": "Formula not found"}), 404
+
+    success = delete_batch_formula(formula_id)
+    if not success:
+        return jsonify({"error": "Failed to delete formula"}), 500
+
+    return jsonify({}), 204

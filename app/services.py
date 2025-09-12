@@ -2,9 +2,10 @@ import secrets
 import string
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from app.models import ApiKey, Batch, Ingredient, Liquor
+from app.models import ApiKey, Batch, BatchFormula, Ingredient, Liquor
 from app.repositories import (
     ApiKeyRepository,
+    BatchFormulaRepository,
     BatchRepository,
     IngredientRepository,
     LiquorRepository,
@@ -14,6 +15,7 @@ liquor_repository = LiquorRepository()
 batch_repository = BatchRepository()
 api_key_repository = ApiKeyRepository()
 ingredient_repository = IngredientRepository()
+batch_formula_repository = BatchFormulaRepository()
 
 
 def create_batch_with_ingredients(
@@ -246,3 +248,56 @@ def delete_batch(batch_id: int) -> bool:
 
     batch_repository.delete(batch)
     return True
+
+
+def get_formulas_for_batch(batch_id: int) -> List[BatchFormula]:
+    """Service to get all formulas for a batch"""
+    return batch_formula_repository.get_all_for_batch(batch_id)
+
+
+def create_batch_formula(
+    batch_id: int, ingredient_id: int, quantity: float, unit: str
+) -> Tuple[Optional[BatchFormula], Optional[str]]:
+    """Service to create a new formula for a batch"""
+    # First check if the batch exists
+    batch = get_batch_by_id(batch_id)
+    if not batch:
+        return None, "Batch not found."
+
+    # Check if the ingredient exists
+    ingredient = get_ingredient_by_id(ingredient_id)
+    if not ingredient:
+        return None, "Ingredient not found."
+
+    return batch_formula_repository.create(batch_id, ingredient_id, quantity, unit)
+
+
+def get_batch_formula_by_id(formula_id: int) -> Optional[BatchFormula]:
+    """Service to get a batch formula by ID"""
+    return batch_formula_repository.get(formula_id)
+
+
+def update_batch_formula(
+    formula_id: int, data: Dict[str, Any]
+) -> Tuple[Optional[BatchFormula], Optional[str]]:
+    """Service to update a batch formula"""
+    formula = get_batch_formula_by_id(formula_id)
+    if not formula:
+        return None, "Formula not found."
+
+    # Validate ingredient if provided
+    if "ingredient_id" in data:
+        ingredient = get_ingredient_by_id(data["ingredient_id"])
+        if not ingredient:
+            return None, "Ingredient not found."
+
+    return batch_formula_repository.update(formula, data)
+
+
+def delete_batch_formula(formula_id: int) -> bool:
+    """Service to delete a batch formula"""
+    formula = get_batch_formula_by_id(formula_id)
+    if not formula:
+        return False
+
+    return batch_formula_repository.delete(formula)
