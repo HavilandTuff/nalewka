@@ -58,7 +58,7 @@ def api_root() -> Any:
         {
             "message": "Welcome to the Nalewka API",
             "version": "1.0",
-            "documentation": "/api/docs",
+            "documentation": "/api/v1/docs",
         }
     )
 
@@ -67,6 +67,17 @@ def api_root() -> Any:
 def api_docs() -> Any:
     """API documentation endpoint"""
     return render_template("swaggerui.html")
+
+
+@api_v1_bp.route("/docs/api_documentation.yaml")
+def api_docs_yaml() -> Any:
+    """Serve the API documentation YAML file"""
+    import os
+
+    from flask import send_from_directory
+
+    docs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs")
+    return send_from_directory(docs_dir, "api_documentation.yaml", mimetype="text/yaml")
 
 
 @api_v1_bp.route("/auth/login", methods=["POST"])

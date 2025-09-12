@@ -223,7 +223,7 @@ The Nalewka application provides a comprehensive REST API for programmatic acces
 
 ### API Documentation
 
-Interactive API documentation is available at `/api/docs` when the application is running. The documentation includes:
+Interactive API documentation is available at `/api/v1/docs` when the application is running. The documentation includes:
 
 - Detailed descriptions of all endpoints
 - Request/response schemas

@@ -9,6 +9,14 @@ def test_api_docs_endpoint(client):
     assert b"Nalewka API" in response.data
 
 
+def test_api_docs_yaml_endpoint(client):
+    """Test that the API documentation YAML endpoint returns the specification."""
+    response = client.get("/api/v1/docs/api_documentation.yaml")
+    assert response.status_code == 200
+    assert b"openapi" in response.data
+    assert b"Nalewka API" in response.data
+
+
 def test_api_root_endpoint(client):
     """Test that the API root endpoint returns the correct information."""
     response = client.get("/api/v1/")
@@ -17,4 +25,4 @@ def test_api_root_endpoint(client):
     assert "message" in data
     assert "version" in data
     assert "documentation" in data
-    assert data["documentation"] == "/api/docs"
+    assert data["documentation"] == "/api/v1/docs"
