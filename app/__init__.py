@@ -56,6 +56,10 @@ def create_app(config_override: Optional[Dict[str, Any]] = None) -> Flask:
         for key, value in config_dict.items():
             app.config[key] = value
 
+    # Special handling for SQLALCHEMY_ENGINE_OPTIONS
+    if hasattr(settings, "SQLALCHEMY_ENGINE_OPTIONS"):
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = settings.SQLALCHEMY_ENGINE_OPTIONS
+
     app.config["GIT_COMMIT_HASH"] = get_git_commit_hash()
     if app.config["GIT_COMMIT_HASH"] is None:
         app.config["GIT_COMMIT_HASH"] = "unknown"

@@ -60,12 +60,12 @@ pip-compile requirements-dev.in
 
 5. **Initialize the database**:
    ```bash
-   python manage.py init
+   flask init-db
    ```
 
 6. **Create sample data (optional)**:
    ```bash
-   python manage.py sample
+   flask seed-data
    ```
 
 ### Running Locally
@@ -142,6 +142,14 @@ Make sure these are set in your Render service:
 - `SECRET_KEY`: A secure random string
 - `DATABASE_URL`: PostgreSQL connection string (auto-set by Render)
 
+## Deployment on Raspberry Pi Zero
+
+This application can also be deployed on a Raspberry Pi Zero for a lightweight, self-hosted solution.
+
+See [DEPLOY_PI_ZERO.md](DEPLOY_PI_ZERO.md) for detailed instructions.
+
+For a quick deployment on Pi Zero:
+
 ## Database Schema
 
 ### Users
@@ -191,7 +199,6 @@ nalewka/
 │   └── API_DOCUMENTATION.md    # Documentation guide
 ├── config.py               # Configuration settings
 ├── nalewka.py              # Application entry point
-├── manage.py               # Management script
 ├── deploy.py               # Deployment script
 ├── build.sh                # Build script for Render
 ├── render.yaml             # Render configuration

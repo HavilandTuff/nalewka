@@ -7,6 +7,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """
     Application settings loaded from environment variables or a .env file.
+
+    For Raspberry Pi Zero deployment, consider using SQLite for better performance
+    on resource-constrained devices. See DEPLOY_PI_ZERO.md for more details.
     """
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -22,6 +25,17 @@ class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URI: str = Field(
         default_factory=lambda: _get_database_uri(),
         description="Database connection URI. Supports SQLite and PostgreSQL.",
+    )
+
+    # SQLAlchemy engine options for performance on resource-constrained devices
+    SQLALCHEMY_ENGINE_OPTIONS: dict = Field(
+        default_factory=lambda: {
+            "pool_pre_ping": True,
+            "pool_recycle": 300,
+            "pool_size": 2,  # Reduced pool size for Pi Zero
+            "max_overflow": 0,
+        },
+        description="SQLAlchemy engine options. Optimized for Raspberry Pi Zero.",
     )
 
     # Mail server settings (made optional for deployment)
