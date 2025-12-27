@@ -4,13 +4,13 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/nalewka
+User=karol
+WorkingDirectory=/home/karol/nalewka
 Environment=FLASK_APP=nalewka.py
 Environment=FLASK_ENV=production
 Environment=SECRET_KEY=your-secret-key-here-change-this-in-production
 Environment=DATABASE_URL=sqlite:///nalewka.db
-ExecStart=/home/pi/nalewka/venv/bin/flask run --host=0.0.0.0 --port=5000
+ExecStart=/home/karol/nalewka/venv/bin/flask run --host=0.0.0.0 --port=5000
 Restart=always
 
 [Install]
