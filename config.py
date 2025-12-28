@@ -96,6 +96,18 @@ class Settings(BaseSettings):
         description="Enable CSRF protection for forms.",
     )
 
+    # Logging settings
+    LOG_TO_STDOUT: bool = Field(True, description="Enable logging to standard output.")
+    LOG_FILE: str = Field(
+        "logs/app.log", description="Path to the application log file."
+    )
+    LOG_MAX_BYTES: int = Field(
+        1024 * 1024, description="Maximum size of a single log file (default 1MB)."
+    )
+    LOG_BACKUP_COUNT: int = Field(
+        5, description="Number of historical log files to keep."
+    )
+
 
 def _get_database_uri() -> str:
     """Get the appropriate database URI based on the environment."""

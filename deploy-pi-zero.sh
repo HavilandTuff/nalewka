@@ -39,7 +39,7 @@ pip install -r requirements-pi-zero.txt
 
 # Set up environment variables
 echo "Setting up environment variables..."
-mkdir -p instance
+mkdir -p instance logs
 PROJECT_ROOT="/home/karol/nalewka"
 cat > .env << EOF
 FLASK_APP=nalewka.py
