@@ -39,12 +39,13 @@ pip install -r requirements-pi-zero.txt
 
 # Set up environment variables
 echo "Setting up environment variables..."
+mkdir -p instance
 cat > .env << EOF
 FLASK_APP=nalewka.py
 FLASK_ENV=production
 SECRET_KEY=your-secret-key-here-change-this-in-production
-# Using SQLite for Pi Zero deployment
-DATABASE_URL=sqlite:///nalewka.db
+# Using SQLite for Pi Zero deployment (in instance folder for security)
+DATABASE_URL=sqlite:///instance/nalewka.db
 EOF
 
 # Initialize the database

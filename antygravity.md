@@ -58,22 +58,21 @@
 
 ### Pending Deployment Tasks
 
-> [!IMPORTANT]
-> The following tasks require actual testing on the Raspberry Pi Zero hardware.
+1. **Copy files to Pi Zero** — Transfer project to `~/nalewka/` ✅
+2. **Run deployment script** — Execute `./deploy-pi-zero.sh` ✅
+3. **Test application** — Verify Flask runs at `http://[PI_IP]:5000` ✅
+4. **Configure systemd service** — Setup auto-start ✅
+5. **Security hardening** — **[COMPLETED]** ✅
 
-1. **Copy files to Pi Zero** — Transfer project to `~/nalewka/` ✅ (Done)
-2. **Run deployment script** — Execute `./deploy-pi-zero.sh` ✅ (Done)
-3. **Test application** — Verify Flask runs at `http://[PI_IP]:5000` ✅ (Done)
-4. **Configure systemd service** — Setup auto-start:
-   ```bash
-   # On the Pi:
-   sudo cp ~/nalewka/nalewka.service /etc/systemd/system/
-   sudo systemctl daemon-reload
-   sudo systemctl enable nalewka.service
-   sudo systemctl start nalewka.service
-   sudo systemctl status nalewka.service
-   ```
-5. **Security hardening** — Change default SECRET_KEY in production
+---
+
+## Current Focus: Stage B — Production Improvements 🚀
+
+With the Pi Zero deployment secured, we are moving towards production stability:
+
+1. **Database Backup**: Implementing automated SQLite backups to prevent data loss.
+2. **Logging**: Setting up log rotation and structured logging.
+3. **Monitoring**: Adding health check endpoints for better observability.
 
 ---
 
