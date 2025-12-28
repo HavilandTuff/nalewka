@@ -47,13 +47,14 @@ def create_app(config_override: Optional[Dict[str, Any]] = None) -> Flask:
         __name__, instance_path=instance_path, instance_relative_config=True
     )
 
-    # Load configuration
+    # Load baseline configuration from settings
+    config_dict: Dict[str, Any] = settings.model_dump()
+    for key, value in config_dict.items():
+        app.config[key] = value
+
+    # Apply configuration overrides if provided
     if config_override:
         for key, value in config_override.items():
-            app.config[key] = value
-    else:
-        config_dict: Dict[str, Any] = settings.model_dump()
-        for key, value in config_dict.items():
             app.config[key] = value
 
     # Special handling for SQLALCHEMY_ENGINE_OPTIONS
@@ -68,6 +69,38 @@ def create_app(config_override: Optional[Dict[str, Any]] = None) -> Flask:
     migrate.init_app(app, db)
     login.init_app(app)
     csrf.init_app(app)
+
+    # Initialize logging
+    if not app.debug and not app.testing:
+        import logging
+        from logging.handlers import RotatingFileHandler
+
+        # Ensure log directory exists
+        log_dir = os.path.join(app.root_path, "..", os.path.dirname(settings.LOG_FILE))
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
+        log_path = os.path.join(app.root_path, "..", settings.LOG_FILE)
+        file_handler = RotatingFileHandler(
+            log_path,
+            maxBytes=settings.LOG_MAX_BYTES,
+            backupCount=settings.LOG_BACKUP_COUNT,
+        )
+        file_handler.setFormatter(
+            logging.Formatter(
+                "%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]"
+            )
+        )
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
+
+        if settings.LOG_TO_STDOUT:
+            stream_handler = logging.StreamHandler()
+            stream_handler.setLevel(logging.INFO)
+            app.logger.addHandler(stream_handler)
+
+        app.logger.setLevel(logging.INFO)
+        app.logger.info("Nalewka startup")
 
     # Import and register the blueprints
     from app.api import api_bp

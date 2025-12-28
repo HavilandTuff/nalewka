@@ -10,7 +10,7 @@ Environment=FLASK_APP=nalewka.py
 Environment=FLASK_ENV=production
 Environment=SECRET_KEY=your-secret-key-here-change-this-in-production
 Environment=DATABASE_URL=sqlite:///instance/nalewka.db
-ExecStart=/home/karol/nalewka/venv/bin/flask run --host=0.0.0.0 --port=5000
+ExecStart=/home/karol/nalewka/venv/bin/python /home/karol/nalewka/run_pi_zero.py
 Restart=always
 
 # Security Hardening
@@ -19,7 +19,7 @@ ProtectHome=read-only
 PrivateTmp=true
 NoNewPrivileges=true
 ReadOnlyPaths=/home/karol/nalewka
-ReadWritePaths=/home/karol/nalewka/instance
+ReadWritePaths=/home/karol/nalewka/instance /home/karol/nalewka/logs
 
 [Install]
 WantedBy=multi-user.target
