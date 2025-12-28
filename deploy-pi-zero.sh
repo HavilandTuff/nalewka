@@ -40,21 +40,26 @@ pip install -r requirements-pi-zero.txt
 # Set up environment variables
 echo "Setting up environment variables..."
 mkdir -p instance
+PROJECT_ROOT="/home/karol/nalewka"
 cat > .env << EOF
 FLASK_APP=nalewka.py
 FLASK_ENV=production
 SECRET_KEY=your-secret-key-here-change-this-in-production
-# Using SQLite for Pi Zero deployment (in instance folder for security)
-DATABASE_URL=sqlite:///instance/nalewka.db
+# Using SQLite for Pi Zero deployment (Absolute path for reliability)
+DATABASE_URL=sqlite:///${PROJECT_ROOT}/instance/nalewka.db
 EOF
 
-# Initialize the database
-echo "Initializing database..."
-flask init-db
-
-# Optional: Seed with sample data
-echo "Seeding database with sample data..."
-flask seed-data
+# Initialize the database ONLY if it doesn't exist
+if [ ! -f "${PROJECT_ROOT}/instance/nalewka.db" ]; then
+    echo "Database not found. Initializing database..."
+    flask init-db
+    echo "Seeding database with sample data..."
+    flask seed-data
+else
+    echo "Database already exists. Skipping initialization."
+    # Run migrations instead of init-db to preserve data
+    flask db upgrade
+fi
 
 echo "Deployment complete!"
 echo ""

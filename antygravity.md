@@ -59,7 +59,7 @@
 ### Pending Deployment Tasks
 
 1. **Copy files to Pi Zero** — Transfer project to `~/nalewka/` ✅
-2. **Run deployment script** — Execute `./deploy-pi-zero.sh` ✅
+2. **Run deployment script** — Execute `./deploy-pi-zero.sh` ✅ (Refined with safe DB init)
 3. **Test application** — Verify Flask runs at `http://[PI_IP]:5000` ✅
 4. **Configure systemd service** — Setup auto-start ✅
 5. **Security hardening** — **[COMPLETED]** ✅
