@@ -15,8 +15,8 @@ echo "Updating system packages..."
 sudo apt update
 
 # Install Python and pip if not already installed
-echo "Installing Python and pip..."
-sudo apt install -y python3 python3-pip python3-venv
+echo "Installing Python and dependencies..."
+sudo apt install -y python3 python3-pip python3-venv sqlite3
 
 # Create project directory
 echo "Creating project directory..."
