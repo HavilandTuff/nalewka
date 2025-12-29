@@ -27,7 +27,11 @@ from app.repositories import (
     LiquorRepository,
     UserRepository,
 )
-from app.services import create_batch_with_ingredients, update_batch_bottles
+from app.services import (
+    check_health,
+    create_batch_with_ingredients,
+    update_batch_bottles,
+)
 
 user_repository = UserRepository()
 liquor_repository = LiquorRepository()
@@ -59,6 +63,14 @@ def handle_db_errors(f: Callable) -> Callable:
 def user_owns_liquor(liquor_id: int, user_id: int) -> bool:
     """Helper function remains useful for checks before rendering a form."""
     return liquor_repository.user_owns_liquor(liquor_id, user_id)
+
+
+@main_bp.route("/health")
+def health() -> Any:
+    """Health check endpoint for monitoring."""
+    status = check_health()
+    status_code = 200 if status["status"] == "healthy" else 503
+    return jsonify(status), status_code
 
 
 @main_bp.route("/")

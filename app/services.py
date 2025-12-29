@@ -470,3 +470,55 @@ def delete_batch_formula(formula_id: int) -> bool:
         return False
 
     return batch_formula_repository.delete(formula)
+
+
+def check_health() -> Dict[str, Any]:
+    """
+    Check the health of the application and its dependencies.
+    Returns a dictionary with the health status.
+    """
+    from sqlalchemy import text
+
+    import os
+    import shutil
+
+    health_status = {
+        "status": "healthy",
+        "database": "up",
+        "disk": "unknown",
+        "errors": [],
+    }
+
+    # Check database connectivity
+    try:
+        db.session.execute(text("SELECT 1")).scalar()
+    except Exception as e:
+        health_status["status"] = "unhealthy"
+        health_status["database"] = "down"
+        health_status["errors"].append(f"Database error: {str(e)}")
+
+    # Check disk space (Pi Zero focus)
+    try:
+        # Check space in the instance directory where the DB resides
+        instance_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "instance")
+        )
+        total, used, free = shutil.disk_usage(instance_path)
+        percent_used = (used / total) * 100
+        health_status["disk"] = {
+            "total_gb": round(total / (1024**3), 2),
+            "used_gb": round(used / (1024**3), 2),
+            "free_gb": round(free / (1024**3), 2),
+            "percent_used": round(percent_used, 2),
+        }
+
+        # Warn if disk is more than 90% full
+        if percent_used > 90:
+            health_status["status"] = "degraded"
+            health_status["errors"].append(
+                f"Disk space low: {round(percent_used, 2)}% used"
+            )
+    except Exception as e:
+        health_status["errors"].append(f"Disk check error: {str(e)}")
+
+    return health_status

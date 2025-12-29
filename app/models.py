@@ -1,5 +1,10 @@
 from datetime import datetime, timezone
-from typing import Optional, TypeAlias
+from typing import Any, Optional
+
+try:
+    from typing import TypeAlias
+except ImportError:
+    from typing import Any as TypeAlias
 
 import sqlalchemy as sa
 import sqlalchemy.orm as so

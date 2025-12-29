@@ -14,6 +14,7 @@ from app.exceptions import (
 )
 from app.models import User
 from app.services import (
+    check_health,
     create_api_key,
     create_batch,
     create_batch_formula,
@@ -61,6 +62,14 @@ def api_root() -> Any:
             "documentation": "/api/v1/docs",
         }
     )
+
+
+@api_v1_bp.route("/health")
+def api_health() -> Any:
+    """API health check endpoint"""
+    status = check_health()
+    status_code = 200 if status["status"] == "healthy" else 503
+    return jsonify(status), status_code
 
 
 @api_v1_bp.route("/docs")
